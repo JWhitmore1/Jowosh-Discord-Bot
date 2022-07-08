@@ -8,7 +8,7 @@ import os
 f = open('options.txt', 'r')
 #   thanks to @sponkle#6445 for the options
 options_8ball = f.read().split('\n')
-print(options_8ball)
+# print(options_8ball)
 
 load_dotenv()
 bot = lightbulb.BotApp(
@@ -42,7 +42,7 @@ async def inspire(ctx):
     await ctx.respond(link)
 
 @bot.command
-@lightbulb.command('test embed', 'test embed')
+@lightbulb.command('test', 'test embed')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def test(ctx):
     embed = hikari.Embed(title="title")
