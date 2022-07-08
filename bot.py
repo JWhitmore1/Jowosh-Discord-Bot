@@ -1,22 +1,14 @@
 import hikari
 import lightbulb
 import random
+import requests
 from dotenv import load_dotenv
 import os
 
-
-options_8ball = [
-    # thanks to @sponkle#6445 for the options
-    'Certainly not.', 
-    'Absolutely!', 
-    'It is certain.',
-    'It is reasonably sure.',
-    'There are some slight doubts.', 
-    'No. Never. Stop. Now.', 
-    'Ballsn\'t', 
-    'Bruh? u fr rn?',
-    'Naur :skull:',
-]
+f = open('options.txt', 'r')
+#   thanks to @sponkle#6445 for the options
+options_8ball = f.read().split('\n')
+print(options_8ball)
 
 load_dotenv()
 bot = lightbulb.BotApp(
@@ -38,8 +30,24 @@ async def print_message(event):
 @lightbulb.option('question', 'Ask away', type=str)
 @lightbulb.command('8ball', 'What will the ball decide!?!?')
 @lightbulb.implements(lightbulb.SlashCommand)
-async def ping(ctx):
-    await ctx.respond(ctx.options.question + '\n\n :8ball:  |  ' + random.choice(options_8ball))
+async def ball(ctx):
+    await ctx.respond(ctx.options.question + '\n :8ball:  |  ' + random.choice(options_8ball))
     
+@bot.command
+@lightbulb.command('inspire', 'Generates inspirational quote')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def inspire(ctx):
+    r = requests.get('https://inspirobot.me/api?generate=true')
+    link = r.content.decode('utf-8')
+    await ctx.respond(link)
+
+@bot.command
+@lightbulb.command('test embed', 'test embed')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def test(ctx):
+    embed = hikari.Embed(title="title")
+
+    await ctx.respond(embed)
+
 bot.run()
 
