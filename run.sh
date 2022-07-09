@@ -1,5 +1,5 @@
 #!/bin/bash
-. ~/.bash_profile
+# . ~/.profile
 
 # script to run on startup on RPI server
 # wait for internet connection before runnning
