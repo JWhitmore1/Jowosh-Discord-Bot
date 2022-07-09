@@ -2,7 +2,7 @@
 echo yourscript.sh called: `date`
 
 HOME = /home/pi/
-PYTHONPATH = /usr/bin/python   
+PYTHONPATH = /usr/local/bin/python3   
 
 # script to run on startup on RPI server
 # wait for internet connection before runnning
