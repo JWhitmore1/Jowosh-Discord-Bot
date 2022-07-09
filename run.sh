@@ -1,3 +1,6 @@
+#!/bin/bash
+. ~/.bash_profile
+
 # script to run on startup on RPI server
 # wait for internet connection before runnning
 ROUTER_IP=192.168.1.1
