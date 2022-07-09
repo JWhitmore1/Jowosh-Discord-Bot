@@ -7,6 +7,6 @@ while ( ! ping -c1 $ROUTER_IP) do
 done
 echo "network is up now"
 
-git pull 
+cd /home/pi/Jowosh-Discord-Bot/ && git pull 
 
-/usr/bin/python bot.py 
+/usr/bin/python /home/pi/Jowosh-Discord-Bot/bot.py 
