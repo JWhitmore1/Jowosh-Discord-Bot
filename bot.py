@@ -5,6 +5,7 @@ import random
 import requests
 from dotenv import load_dotenv
 import os
+import json
 
 f = open('options.txt', 'r')
 #   thanks to @sponkle#6445 for the options
@@ -14,7 +15,7 @@ options_8ball = f.read().split('\n')
 load_dotenv()
 bot = lightbulb.BotApp(
     token=os.environ.get("bot_token"), 
-    default_enabled_guilds=(853171732319174667)
+    default_enabled_guilds=(853171732319174667, 995308486088994937)
     )
 
 # @bot.listen(hikari.StartedEvent)
@@ -99,8 +100,11 @@ async def banner(ctx):
 async def hug(ctx): 
     sender = str(ctx.member.id)
     recipient = str(ctx.options.user.id)
-    embed = hikari.Embed(title = "You gave a hug!", color="#50C878")
-    embed.add_field(name = "** **", value = "*<@"+sender+"> hugs "+"<@"+recipient+">*")
+    gif = requests.get('https://usagiapi.danielagc.repl.co/api/hug').json()['url']
+
+    embed = hikari.Embed(title="You gave a hug!", color="#50C878")
+    embed.add_field(name="** **", value="*<@"+sender+"> hugs "+"<@"+recipient+">*")
+    embed.set_image(gif)
     await ctx.respond(embed)
 
 @bot.command
@@ -110,8 +114,11 @@ async def hug(ctx):
 async def kiss(ctx):
     sender = str(ctx.member.id)
     recipient = str(ctx.options.user.id)
-    embed = hikari.Embed(title = "You gave a kiss!", color="#FFB6C1")
-    embed.add_field(name = "** **", value = "*<@"+sender+"> kisses "+"<@"+recipient+">*")
+    gif = requests.get('https://usagiapi.danielagc.repl.co/api/kiss').json()['url']
+
+    embed = hikari.Embed(title="You gave a kiss!", color="#FFB6C1")
+    embed.add_field(name="** **", value="*<@"+sender+"> kisses "+"<@"+recipient+">*")
+    embed.set_image(gif)
     await ctx.respond(embed)
 
 @bot.command
@@ -121,8 +128,11 @@ async def kiss(ctx):
 async def slap(ctx):
     sender = str(ctx.member.id)
     recipient = str(ctx.options.user.id)
-    embed = hikari.Embed(title = "You gave a slap!", color="#EEDC82")
-    embed.add_field(name = "** **", value = "*<@"+sender+"> slaps "+"<@"+recipient+">... ouch!*")
+    gif = requests.get('https://usagiapi.danielagc.repl.co/api/slap').json()['url']
+
+    embed = hikari.Embed(title="You gave a slap!", color="#EEDC82")
+    embed.add_field(name="** **", value="*<@"+sender+"> slaps "+"<@"+recipient+">... ouch!*")
+    embed.set_image(gif)
     await ctx.respond(embed)
 
 bot.run()
