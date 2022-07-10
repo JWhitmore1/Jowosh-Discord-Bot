@@ -1,6 +1,7 @@
 import hikari
 import lightbulb
 import requests
+from db import get_db, id_exists
 
 
 def interact(ctx, type):
