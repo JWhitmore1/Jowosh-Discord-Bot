@@ -103,4 +103,26 @@ async def hug(ctx):
     embed.add_field(name = "** **", value = "*<@"+sender+"> hugs "+"<@"+recipient+">*")
     await ctx.respond(embed)
 
+@bot.command
+@lightbulb.option('user', 'Who to kiss?', hikari.User)
+@lightbulb.command('kiss', 'Give this person a passionate kiss!')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def kiss(ctx):
+    sender = str(ctx.member.id)
+    recipient = str(ctx.options.user.id)
+    embed = hikari.Embed(title = "You gave a kiss!", color="#FFB6C1")
+    embed.add_field(name = "** **", value = "*<@"+sender+"> kisses "+"<@"+recipient+">*")
+    await ctx.respond(embed)
+
+@bot.command
+@lightbulb.option('user', 'Who to slap?', hikari.User)
+@lightbulb.command('slap', 'Give this person a slap!')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def slap(ctx):
+    sender = str(ctx.member.id)
+    recipient = str(ctx.options.user.id)
+    embed = hikari.Embed(title = "You gave a slap!", color="#EEDC82")
+    embed.add_field(name = "** **", value = "*<@"+sender+"> slaps "+"<@"+recipient+">... ouch!*")
+    await ctx.respond(embed)
+
 bot.run()
