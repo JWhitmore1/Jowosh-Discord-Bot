@@ -8,7 +8,7 @@ def create_bot() -> lightbulb.BotApp:
     load_dotenv()
     bot = lightbulb.BotApp(
         token=os.environ.get("bot_token"),
-        default_enabled_guilds=os.environ.get("guild_id")
+        default_enabled_guilds=(int(os.environ.get("guild_id")))
     )
 
     bot.load_extensions_from("./commands")
