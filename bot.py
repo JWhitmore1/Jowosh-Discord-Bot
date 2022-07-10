@@ -1,3 +1,4 @@
+from tkinter import font
 import hikari
 import lightbulb
 import random
@@ -15,6 +16,10 @@ bot = lightbulb.BotApp(
     token=os.environ.get("bot_token"), 
     default_enabled_guilds=(853171732319174667)
     )
+
+# @bot.listen(hikari.StartedEvent)
+# async def bot_started(event):
+#     await bot.presences.activity("with peoples feelings")
 
 @bot.listen(hikari.GuildMessageCreateEvent)
 async def print_message(event):
@@ -46,7 +51,6 @@ async def inspire(ctx):
 @lightbulb.implements(lightbulb.SlashCommand)
 async def test(ctx):
     embed = hikari.Embed(title="title")
-
     await ctx.respond(embed)
 
 @bot.command
@@ -86,5 +90,15 @@ async def say(ctx):
 
     await ctx.respond(message)
 
-bot.run()
+@bot.command
+@lightbulb.option('user', 'Who to hug?', hikari.User)
+@lightbulb.command('hug', 'Give this person a big hug!')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def hug(ctx): 
+    sender = str(ctx.member.id)
+    recipient = str(ctx.options.user.id)
+    embed = hikari.Embed(title = "You gave a hug!", color="#50C878")
+    embed.add_field(name = "** **", value = "*<@"+sender+"> hugs "+"<@"+recipient+">*")
+    await ctx.respond(embed)
 
+bot.run()
