@@ -17,13 +17,10 @@ def interact(ctx, type):
 
     db = get_db()
     ids = check_pair(sender, recipient, db)
-    # what the fuck
-    print(ids)
-    print(action)
-    sent = db.execute('SELECT ? FROM pairs WHERE ID = ?;', (action, ids[0])).fetchone()
-    print(sent)
+    sent = db.execute(f"SELECT {action} FROM pairs WHERE ID = ?;", (ids[0],)).fetchone()[0]
     sent += 1
-    db.execute('UPDATE pairs SET ? = ? WHERE ID = ?;', (action, sent, ids[0]))
+    db.execute(f'UPDATE pairs SET {action} = ? WHERE ID = ?;', (sent, ids[0]))
+    db.commit()
 
     embed = hikari.Embed(title=f"You gave a {type}!", color=color)
     embed.add_field(name="** **", value=f"*<@{sender}> {action} <@{recipient}>*")
