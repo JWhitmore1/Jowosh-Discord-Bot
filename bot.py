@@ -5,7 +5,6 @@ import random
 import requests
 from dotenv import load_dotenv
 import os
-import json
 
 f = open('options.txt', 'r')
 #   thanks to @sponkle#6445 for the options
@@ -93,18 +92,26 @@ async def banner(ctx):
 
     await ctx.respond(message)
 
+def interact(ctx, type):
+    sender = str(ctx.member.id)
+    recipient = str(ctx.options.user.id)
+    gif = requests.get('https://usagiapi.danielagc.repl.co/api/'+type).json()['url']
+
+    if type == "hug": color, action = "#50C878", "hugs"
+    if type == "kiss": color, action = "#FFB6C1", "kisses"
+    if type == "slap": color, action = "#EEDC82", "slaps"
+
+    embed = hikari.Embed(title=f"You gave a {type}!", color=color)
+    embed.add_field(name="** **", value=f"*<@{sender}> {action} <@{recipient}>*")
+    embed.set_image(gif)
+    return embed
+
 @bot.command
 @lightbulb.option('user', 'Who to hug?', hikari.User)
 @lightbulb.command('hug', 'Give this person a big hug!')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def hug(ctx): 
-    sender = str(ctx.member.id)
-    recipient = str(ctx.options.user.id)
-    gif = requests.get('https://usagiapi.danielagc.repl.co/api/hug').json()['url']
-
-    embed = hikari.Embed(title="You gave a hug!", color="#50C878")
-    embed.add_field(name="** **", value="*<@"+sender+"> hugs "+"<@"+recipient+">*")
-    embed.set_image(gif)
+    embed = interact(ctx, "hug")
     await ctx.respond(embed)
 
 @bot.command
@@ -112,13 +119,7 @@ async def hug(ctx):
 @lightbulb.command('kiss', 'Give this person a passionate kiss!')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def kiss(ctx):
-    sender = str(ctx.member.id)
-    recipient = str(ctx.options.user.id)
-    gif = requests.get('https://usagiapi.danielagc.repl.co/api/kiss').json()['url']
-
-    embed = hikari.Embed(title="You gave a kiss!", color="#FFB6C1")
-    embed.add_field(name="** **", value="*<@"+sender+"> kisses "+"<@"+recipient+">*")
-    embed.set_image(gif)
+    embed = interact(ctx, "kiss")
     await ctx.respond(embed)
 
 @bot.command
@@ -126,13 +127,7 @@ async def kiss(ctx):
 @lightbulb.command('slap', 'Give this person a slap!')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def slap(ctx):
-    sender = str(ctx.member.id)
-    recipient = str(ctx.options.user.id)
-    gif = requests.get('https://usagiapi.danielagc.repl.co/api/slap').json()['url']
-
-    embed = hikari.Embed(title="You gave a slap!", color="#EEDC82")
-    embed.add_field(name="** **", value="*<@"+sender+"> slaps "+"<@"+recipient+">... ouch!*")
-    embed.set_image(gif)
+    embed = interact(ctx, "slap")
     await ctx.respond(embed)
 
 bot.run()
