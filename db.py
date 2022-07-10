@@ -16,8 +16,12 @@ def initialise():
 
     conn.execute(schema)
 
-def id_exists(id, db):
-    if db.execute('SELECT * FROM pairs WHERE ID = ?;', (id,)).fetchone() is None:
-        return False
-    else:
-        return True
+
+def check_pair(sender, recipient, db):
+    pair_id = sender + recipient
+    reverse = recipient + sender
+    if db.execute('SELECT * FROM pairs WHERE ID = ?;', (pair_id,)).fetchone() is None:
+        db.execute('INSERT INTO pairs (ID) VALUES (?);', (pair_id,))
+        db.execute('INSERT INTO pairs (ID) VALUES (?);', (reverse,))
+
+    return [pair_id, reverse]

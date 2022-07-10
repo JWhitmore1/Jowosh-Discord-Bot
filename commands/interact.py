@@ -1,7 +1,7 @@
 import hikari
 import lightbulb
 import requests
-from db import get_db, id_exists
+from db import get_db, check_pair
 
 
 def interact(ctx, type):
@@ -15,8 +15,22 @@ def interact(ctx, type):
     if type == "bite": color, action = "#FA5F55", "bites"
     if type == "pat": color, action = "#5D3FD3", "pats"
 
+    db = get_db()
+    ids = check_pair(sender, recipient, db)
+    # what the fuck
+    print(ids)
+    print(action)
+    sent = db.execute('SELECT ? FROM pairs WHERE ID = ?;', (action, ids[0])).fetchone()
+    print(sent)
+    sent += 1
+    db.execute('UPDATE pairs SET ? = ? WHERE ID = ?;', (action, sent, ids[0]))
+
     embed = hikari.Embed(title=f"You gave a {type}!", color=color)
     embed.add_field(name="** **", value=f"*<@{sender}> {action} <@{recipient}>*")
+    if sent == 1:
+        embed.set_footer(text=f"That's your first {type} with {ctx.options.user}")
+    else:
+        embed.set_footer(text=f"That's {sent} {action}!")
     embed.set_image(gif)
     return embed
 

@@ -1,7 +1,7 @@
 import hikari
 import lightbulb
 import random
-from db import get_db, id_exists
+from db import get_db, check_pair
 
 f = open('kill.txt', 'r')
 kill_options = f.read().split('\n')
@@ -16,36 +16,21 @@ async def kill(ctx):
     if sender == recipient:
         await ctx.respond("~noooooo dont kill urslef u r so hot and secsy :weary:")
     else:
-        pair_id = sender + recipient
-        # print("\n\n" + pair_id)
-        reverse = recipient + sender
-
         db = get_db()
+        ids = check_pair(sender, recipient, db)
 
-        if id_exists(reverse, db):
-            # print('reverse exists')
-            data = db.execute('SELECT kills, killeds FROM pairs WHERE ID = ?;', (reverse,)).fetchone()
-            kills = data[1] + 1
-            killeds = data[0]
-            db.execute('UPDATE pairs SET killeds = ? WHERE ID = ?;', (kills, reverse))
-        else:
-            if not id_exists(pair_id, db):
-                # print('pair doesn\'t exist')
-                db.execute('INSERT INTO pairs (ID) VALUES (?);', (pair_id,))
-            else:
-                # print('pair exists')
-                pass
+        kills = db.execute('SELECT kills FROM pairs WHERE ID = ?;', (ids[0],)).fetchone()[0]
+        deaths = db.execute('SELECT kills FROM pairs WHERE ID = ?;', (ids[1],)).fetchone()[0]
 
-            data = db.execute('SELECT kills, killeds FROM pairs WHERE ID = ?;', (pair_id,)).fetchone()
-            kills = data[0] + 1
-            killeds = data[1]
-            db.execute('UPDATE pairs SET kills = ? WHERE ID = ?;', (kills, pair_id))
+        kills += 1
+
+        db.execute('UPDATE pairs SET kills = ? WHERE ID = ?;', (kills, ids[0]))
 
         db.commit()
 
         embed = hikari.Embed(title=f"{random.choice(kill_options)}", color="#DC143C")
         embed.add_field(name="\u200b", value=f"*<@{sender}> killed <@{recipient}>*", inline=True)
-        embed.set_footer(text=f"{kills} vs. {killeds}")
+        embed.set_footer(text=f"{kills} vs. {deaths}")
         await ctx.respond(embed)
 
 
