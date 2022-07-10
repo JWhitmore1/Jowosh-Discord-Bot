@@ -2,6 +2,7 @@ import hikari
 import lightbulb
 import os
 from dotenv import load_dotenv
+from db import initialise
 
 
 def create_bot() -> lightbulb.BotApp:
@@ -17,6 +18,7 @@ def create_bot() -> lightbulb.BotApp:
 
 
 freak = create_bot()
+initialise()
 
 
 @freak.listen(hikari.GuildMessageCreateEvent)
