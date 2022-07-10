@@ -19,7 +19,6 @@ bot = lightbulb.BotApp(
 @bot.listen(hikari.GuildMessageCreateEvent)
 async def print_message(event):
     # print(event.content)
-    
     if event.is_bot or not event.content:
         return
 
@@ -51,16 +50,19 @@ async def test(ctx):
 
 @bot.command
 @lightbulb.option('text', 'What will Jowosh say', type=str)
+# @lightbulb.option('channel', 'channel for jowosh to speak into', type=channel)
 @lightbulb.command('say', 'Speak vicariously through Jowosh')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def say(ctx):
-    await ctx.respond(ctx.options.text)
+    channel = ctx.get_channel()
+    await channel.send(ctx.options.text)
+    await ctx.respond('** **', delete_after=0)
 
 @bot.command
 @lightbulb.option('text', 'What will Jowosh say', type=str)
 @lightbulb.command('banner', 'Speak through Jowosh, clearly!')
 @lightbulb.implements(lightbulb.SlashCommand)
-async def say(ctx):
+async def banner(ctx):
     message = ''
     conv = {'0': 'zero',
             '1': 'one',
