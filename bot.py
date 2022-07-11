@@ -29,5 +29,7 @@ async def print_message(event):
 
     if event.content.startswith("hi jowosh"):
         await event.message.respond("Hello!! ^-^")
+    elif event.content.startswith("my balls are tooo big???!? :/"):
+        await event.message.respond("send pics lmao")
 
 freak.run()
