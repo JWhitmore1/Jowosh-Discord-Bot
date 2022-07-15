@@ -1,4 +1,11 @@
 import lightbulb
+import hikari
+
+
+@lightbulb.command('guydisintegratinggif', 'just a guy disintegrating dw bout it')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def disintegrate(ctx):
+    await ctx.respond(hikari.File("./static/gif/guydisintegratinggif.gif"))
 
 
 @lightbulb.option('text', 'What will Jowosh say', type=str)
@@ -43,8 +50,10 @@ async def banner(ctx):
 def load(bot: lightbulb.BotApp):
     bot.command(say)
     bot.command(banner)
+    bot.command(disintegrate)
 
 
 def unload(bot: lightbulb.BotApp):
     bot.remove_command(bot.get_slash_command("say"))
     bot.remove_command(bot.get_slash_command("banner"))
+    bot.remove_command(bot.get_slash_command("disintegrate"))
