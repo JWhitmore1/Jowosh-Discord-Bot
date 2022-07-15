@@ -9,7 +9,8 @@ def create_bot() -> lightbulb.BotApp:
     load_dotenv()
     bot = lightbulb.BotApp(
         token=os.environ.get("bot_token"),
-        default_enabled_guilds=(int(os.environ.get("guild_id")))
+        default_enabled_guilds=(int(os.environ.get("guild_id"))),
+        help_slash_command=True
     )
 
     bot.load_extensions_from("./commands")
@@ -17,11 +18,11 @@ def create_bot() -> lightbulb.BotApp:
     return bot
 
 
-freak = create_bot()
+bot = create_bot()
 initialise()
 
 
-@freak.listen(hikari.GuildMessageCreateEvent)
+@bot.listen(hikari.GuildMessageCreateEvent)
 async def print_message(event):
     # print(event.content)
     if event.is_bot or not event.content:
@@ -32,4 +33,11 @@ async def print_message(event):
     elif event.content.startswith("my balls are tooo big???!? :/"):
         await event.message.respond("send pics lmao")
 
-freak.run()
+
+activity = hikari.Activity(
+    name="with your feelings",
+    type=0
+)
+
+
+bot.run(activity=activity)
