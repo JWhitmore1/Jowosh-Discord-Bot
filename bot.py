@@ -9,7 +9,8 @@ def create_bot() -> lightbulb.BotApp:
     load_dotenv()
     bot = lightbulb.BotApp(
         token=os.environ.get("bot_token"),
-        default_enabled_guilds=(int(os.environ.get("guild_id"))),
+        # default enabled guilds not required for commands to load; if issues arise fix
+        # default_enabled_guilds=(int(os.environ.get("guild_id"))),
         help_slash_command=True
     )
 
