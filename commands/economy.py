@@ -1,3 +1,4 @@
+from click import option
 import lightbulb
 import random
 from datetime import datetime
@@ -62,6 +63,45 @@ async def balance(ctx):
     db = get_db()
     bal = db.execute("SELECT gold, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
     print(bal[0], bal[1])
+    await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+
+
+@lightbulb.command('bank view', 'view your bank account')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def bank(ctx):
+    id = ctx.member.id
+    db = get_db()
+    bank = db.execute("SELECT bankbal, banklvl, bankclaim FROM economy WHERE id = ?", (id,)).fetchone()
+    print(bank[0], bank[1])  
+    await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+
+
+@lightbulb.command('bank deposit', 'deposit gold into your bank account')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def bank(ctx):
+    id = ctx.member.id
+    db = get_db()
+    bank = db.execute("SELECT bankbal, banklvl, bankclaim FROM economy WHERE id = ?", (id,)).fetchone()
+    print(bank[0], bank[1])  
+    await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+
+
+@lightbulb.command('bank claim', 'view your bank account')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def bank(ctx):
+    id = ctx.member.id
+    db = get_db()
+    bank = db.execute("SELECT bankbal, banklvl, bankclaim FROM economy WHERE id = ?", (id,)).fetchone()
+    print(bank[0], bank[1])  
+    await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+
+@lightbulb.command('bank upgrade', 'view your bank account')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def bank(ctx):
+    id = ctx.member.id
+    db = get_db()
+    bank = db.execute("SELECT bankbal, banklvl, bankclaim FROM economy WHERE id = ?", (id,)).fetchone()
+    print(bank[0], bank[1])  
     await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
 
 

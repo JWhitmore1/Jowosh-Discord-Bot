@@ -17,9 +17,11 @@ async def daily_reset() -> None:
         print("resetting")
         # reset all users dayclaim and bankclaim
         db = get_db()
-        db.execute("UPDATE economy SET dayclaim = 0, bankclaim = 0")
+        db.execute("UPDATE economy SET dayclaim = 0")
         pass
-        # await daily_plugin.app.rest.create_message(995308487011737662, "Resetting fr")
+    if datetime.strftime(datetime.now(),"%M") == "00":
+        # apply interest
+        pass
 
 
 def load(bot: lightbulb.BotApp) -> None:

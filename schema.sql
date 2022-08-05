@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS economy (
     gold INT DEFAULT 0,
     dayclaim INT DEFAULT 0,
     streak INT DEFAULT 0,
-    bankclaim INT DEFAULT 0,
-    banklvl INT DEFAULT 0,
+    maxbal INT DEFAULT 0,
+    interest FLOAT DEFAULT 1,
     bankbal INT DEFAULT 0
 );
