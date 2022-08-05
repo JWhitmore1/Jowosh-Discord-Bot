@@ -1,9 +1,14 @@
-from click import option
+import hikari
 import lightbulb
 import random
 from datetime import datetime
 from db import get_db, check_id
 from datetime import datetime
+from hikari import Embed
+
+
+econ_plugin = lightbulb.Plugin("economy")
+
 
 def timedelta(reset):
     curr = (int(datetime.strftime(datetime.now(),"%I")) * 60) + int(datetime.strftime(datetime.now(),"%M"))
@@ -16,6 +21,7 @@ def timedelta(reset):
     minute = str(deltaM % 60)
 
     return f"{hour}h {minute}m"
+
 
 @lightbulb.command('daily', 'Claim your daily gold.')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -66,13 +72,17 @@ async def balance(ctx):
     await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
 
 
-@lightbulb.command('bank view', 'view your bank account')
+@lightbulb.command('bank info', 'view your bank account info')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def bank(ctx):
     id = ctx.member.id
     db = get_db()
-    bank = db.execute("SELECT bankbal, banklvl, bankclaim FROM economy WHERE id = ?", (id,)).fetchone()
-    print(bank[0], bank[1])  
+    bank = db.execute("SELECT bankbal, maxbal, interest FROM economy WHERE id = ?", (id,)).fetchone()
+
+    info = hikari.Embed(title="Bank Info", color="#FFD700")
+    info.add_field(name="** **", value=f"There is currently **{bank[0]}** gold in your account")
+    info.add_field(name="** **", value=f"")
+
     await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
 
 
@@ -86,7 +96,7 @@ async def bank(ctx):
     await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
 
 
-@lightbulb.command('bank claim', 'view your bank account')
+@lightbulb.command('bank claim', 'claim the interest from your bank account')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def bank(ctx):
     id = ctx.member.id
@@ -95,7 +105,18 @@ async def bank(ctx):
     print(bank[0], bank[1])  
     await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
 
-@lightbulb.command('bank upgrade', 'view your bank account')
+
+@lightbulb.command('bank upgrade balance', 'upgrade the max balance of your bank account')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def bank(ctx):
+    id = ctx.member.id
+    db = get_db()
+    bank = db.execute("SELECT bankbal, banklvl, bankclaim FROM economy WHERE id = ?", (id,)).fetchone()
+    print(bank[0], bank[1])  
+    await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+
+
+@lightbulb.command('bank upgrade interest', 'upgrade interest your bank account')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def bank(ctx):
     id = ctx.member.id
@@ -106,10 +127,8 @@ async def bank(ctx):
 
 
 def load(bot: lightbulb.BotApp):
-    bot.command(daily)
-    bot.command(balance)
+    bot.add_plugin(econ_plugin)
 
 
 def unload(bot: lightbulb.BotApp):
-    bot.remove_command(bot.get_slash_command("daily"))
-    bot.remove_command(bot.get_slash_command("balance"))
+    bot.remove_plugin(econ_plugin)
