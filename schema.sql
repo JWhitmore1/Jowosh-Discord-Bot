@@ -7,3 +7,13 @@ CREATE TABLE IF NOT EXISTS pairs (
     bites INT DEFAULT 0,
     pats INT DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS economy (
+    ID TEXT PRIMARY KEY NOT NULL,
+    gold INT DEFAULT 0,
+    dayclaim INT DEFAULT 0,
+    streak INT DEFAULT 0,
+    bankclaim INT DEFAULT 0,
+    banklvl INT DEFAULT 0,
+    bankbal INT DEFAULT 0
+);
