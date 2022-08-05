@@ -9,11 +9,11 @@ CREATE TABLE IF NOT EXISTS pairs (
 );
 
 CREATE TABLE IF NOT EXISTS economy (
-    ID TEXT PRIMARY KEY NOT NULL,
-    gold INT DEFAULT 0,
+    id TEXT PRIMARY KEY NOT NULL,
+    gold FLOAT DEFAULT 0.00,
     dayclaim INT DEFAULT 0,
     streak INT DEFAULT 0,
-    maxbal INT DEFAULT 0,
-    interest FLOAT DEFAULT 1,
-    bankbal INT DEFAULT 0
+    maxbal FLOAT DEFAULT 50.00,
+    interest FLOAT DEFAULT 1.015,
+    bankbal FLOAT DEFAULT 0.00
 );

@@ -18,10 +18,25 @@ async def daily_reset() -> None:
         # reset all users dayclaim and bankclaim
         db = get_db()
         db.execute("UPDATE economy SET dayclaim = 0")
-        pass
+
     if datetime.strftime(datetime.now(),"%M") == "00":
-        # apply interest
-        pass
+        db = get_db()
+        user_data = db.execute("SELECT id, bankbal, interest, maxbal FROM economy").fetchall()
+
+        for user in user_data:
+            id = user[0]
+            bank_bal = user[1]
+            interest = user[2]
+            max_bal = user[3]
+
+            new_bal = round(bankbal * interest, 2)
+
+            if new_bal > max_bal:
+                db.execute("UPDATE economy SET bankbal = ? WHERE id = ?", (max_bal, id))
+            else:
+                db.execute("UPDATE economy SET bankbal = ? WHERE id = ?", (new_bal, id))
+
+            db.commit()
 
 
 def load(bot: lightbulb.BotApp) -> None:
