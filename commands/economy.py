@@ -81,7 +81,7 @@ async def bank(ctx):
 
     info = hikari.Embed(title="Bank Info", color="#FFD700")
     info.add_field(name="** **", value=f"There is currently **{bank[0]}** gold in your account")
-    info.add_field(name="** **", value=f"")
+    info.add_field(name="** **", value=f"Your maximum balance is {bank[1]} and you have a")
 
     await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
 
