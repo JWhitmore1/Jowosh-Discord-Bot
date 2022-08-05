@@ -14,11 +14,8 @@ def initialise():
     schema = f.read()
     f.close()
 
-    conn.executescript(schema)
+    conn.execute(schema)
 
-def check_id(id, db):
-    if db.execute('SELECT * FROM economy WHERE ID = ?', (id,)).fetchone() is None:
-        db.execute('INSERT INTO economy (ID) VALUES (?)', (id,))
 
 def check_pair(sender, recipient, db):
     pair_id = sender + recipient
