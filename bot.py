@@ -13,9 +13,7 @@ def create_bot() -> lightbulb.BotApp:
         # default_enabled_guilds=(int(os.environ.get("guild_id"))),
         help_slash_command=True
     )
-
     bot.load_extensions_from("./commands")
-
     return bot
 
 
@@ -28,7 +26,6 @@ async def print_message(event):
     # print(event.content)
     if event.is_bot or not event.content:
         return
-
     if event.content.startswith("hi jowosh"):
         await event.message.respond("Hello!! ^-^")
     elif event.content.startswith("my balls are tooo big???!? :/"):
@@ -40,5 +37,5 @@ activity = hikari.Activity(
     type=0
 )
 
-
-bot.run(activity=activity)
+if __name__ == "__main__":
+    bot.run(activity=activity)
