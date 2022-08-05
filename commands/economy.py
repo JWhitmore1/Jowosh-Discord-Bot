@@ -1,3 +1,4 @@
+from ast import Try
 import hikari
 import lightbulb
 import random
@@ -5,9 +6,6 @@ from datetime import datetime
 from db import get_db, check_id
 from datetime import datetime
 from hikari import Embed
-
-
-econ_plugin = lightbulb.Plugin("economy")
 
 
 def timedelta(reset):
@@ -28,11 +26,10 @@ def timedelta(reset):
 async def daily(ctx):
     id = ctx.member.id
     db = get_db()
+    check_id(id, db)
 
     if int(db.execute("SELECT dayclaim FROM economy WHERE ID = ?", (id,)).fetchone()[0]) == 0:
-        check_id(id, db)
         current = int(db.execute("SELECT gold FROM economy WHERE ID = ?", (id,)).fetchone()[0])
-        
         mean = 150
         sd = 50
         prefix = [":skull_crossbones:", 
@@ -67,33 +64,49 @@ async def daily(ctx):
 async def balance(ctx):
     id = ctx.member.id
     db = get_db()
+    check_id(id, db)
     bal = db.execute("SELECT gold, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
-    print(bal[0], bal[1])
     await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
 
 
-@lightbulb.command('bank info', 'view your bank account info')
+@lightbulb.command('bank-info', 'view your bank account info')
 @lightbulb.implements(lightbulb.SlashCommand)
-async def bank(ctx):
+async def bankInfo(ctx):
     id = ctx.member.id
     db = get_db()
+    check_id(id, db)
     bank = db.execute("SELECT bankbal, maxbal, interest FROM economy WHERE id = ?", (id,)).fetchone()
 
-    info = hikari.Embed(title="Bank Info", color="#FFD700")
+    info = hikari.Embed(title=":bank: | Bank Info", color="#FFD700")
     info.add_field(name="** **", value=f"There is currently **{bank[0]}** gold in your account")
-    info.add_field(name="** **", value=f"Your maximum balance is {bank[1]} and you have a")
+    info.add_field(name="** **", value=f"Your maximum balance is **{bank[1]}** gold")
+    info.add_field(name="** **", value=f"Your hourly interest rate is **{round((bank[2] - 1), 3)*100}%**, so you will earn **{round(bank[0]*(bank[2] - 1), 2)}** gold in the next hour!")
+    info.add_field(name="** **", value="** **")
+    info.set_footer(text="upgrade bank with /upgradeblahblahsuckmyfuckingdickihatethis")
 
-    await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+    await ctx.respond(info)
 
 
-@lightbulb.command('bank deposit', 'deposit gold into your bank account')
+@lightbulb.option('amount', "how much gold do you want to deposit", type=int)
+@lightbulb.command('bank-deposit', 'deposit gold into your bank account')
 @lightbulb.implements(lightbulb.SlashCommand)
-async def bank(ctx):
-    id = ctx.member.id
-    db = get_db()
-    bank = db.execute("SELECT bankbal, banklvl, bankclaim FROM economy WHERE id = ?", (id,)).fetchone()
-    print(bank[0], bank[1])  
-    await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+async def deposit(ctx):
+    amount = int(ctx.options.amount)
+    if int(amount) > 0:
+        id = ctx.member.id
+        db = get_db()
+        check_id(id, db)
+        bankinfo = db.execute("SELECT gold, maxbal, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
+        new_amount = bankinfo[2] + amount
+        if new_amount > bankinfo[1]:
+            await ctx.respond("You cannot deposit more than the max value!")
+        else:
+            db.execute("UPDATE economy SET bankbal = ?, gold = ? WHERE ID = ?", (new_amount, bankinfo[0]-amount, id))
+            db.commit()
+            await ctx.respond(f"Successfully deposited **{amount}** gold.\nThere is now **{new_amount}** gold in your bank")
+    else:
+        await ctx.respond("Please deposit an amount greater than 0")
+
 
 
 @lightbulb.command('bank claim', 'claim the interest from your bank account')
@@ -127,8 +140,15 @@ async def bank(ctx):
 
 
 def load(bot: lightbulb.BotApp):
-    bot.add_plugin(econ_plugin)
+    bot.command(daily)
+    bot.command(balance)
+    bot.command(bankInfo)
+    bot.command(deposit)
+
 
 
 def unload(bot: lightbulb.BotApp):
-    bot.remove_plugin(econ_plugin)
+    bot.remove_command(bot.get_slash_command("daily"))
+    bot.remove_command(bot.get_slash_command("balance"))
+    bot.remove_command(bot.get_slash_command("bank-info"))
+    bot.remove_command(bot.get_slash_command("bank-deposit"))
