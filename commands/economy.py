@@ -62,27 +62,16 @@ async def daily(ctx):
 
 
 @plugin.command()
-@lightbulb.command('balance', 'View your current balance.')
+@lightbulb.command('bank', 'view your bank account info')
 @lightbulb.implements(lightbulb.SlashCommand)
-async def balance(ctx):
+async def bank(ctx):
     id = ctx.member.id
     db = get_db()
     check_id(id, db)
-    bal = db.execute("SELECT gold, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
-    await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+    bank = db.execute("SELECT bankbal, maxbal, interest, gold FROM economy WHERE id = ?", (id,)).fetchone()
 
-
-@plugin.command()
-@lightbulb.command('bank-info', 'view your bank account info')
-@lightbulb.implements(lightbulb.SlashCommand)
-async def bankInfo(ctx):
-    id = ctx.member.id
-    db = get_db()
-    check_id(id, db)
-    bank = db.execute("SELECT bankbal, maxbal, interest FROM economy WHERE id = ?", (id,)).fetchone()
-
-    info = hikari.Embed(title=":bank: | Bank Info", color="#FFD700")
-    info.add_field(name="** **", value=f"There is currently **{bank[0]}** gold in your account")
+    info = hikari.Embed(title=":bank: | Jowosh Bank", color="#FFD700")
+    info.add_field(name="Bank Info\n", value=f"There is currently **{bank[3]}** gold in your wallet, and **{bank[0]}** gold in your bank account.")
     info.add_field(name="** **", value=f"Your maximum balance is **{bank[1]}** gold")
     info.add_field(name="** **", value=f"Your hourly interest rate is **{round((bank[2] - 1), 3)*100}%**, so you will earn **{round(bank[0]*(bank[2] - 1), 2)}** gold in the next hour!")
     info.add_field(name="** **", value="** **")
@@ -92,8 +81,8 @@ async def bankInfo(ctx):
 
 
 @plugin.command()
-@lightbulb.option('amount', "how much gold do you want to deposit", type=int, min_value="0")
-@lightbulb.command('bank-deposit', 'deposit gold into your bank account')
+@lightbulb.option('amount', "how much gold do you want to deposit", type=int, min_value=0)
+@lightbulb.command('deposit', 'deposit gold into your bank account')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def deposit(ctx):
     amount = int(ctx.options.amount)
@@ -108,20 +97,29 @@ async def deposit(ctx):
         else:
             db.execute("UPDATE economy SET bankbal = ?, gold = ? WHERE ID = ?", (new_amount, bankinfo[0]-amount, id))
             db.commit()
-            await ctx.respond(f"Successfully deposited **{amount}** gold.\nThere is now **{new_amount}** gold in your bank")
+            await ctx.respond(f"Successfully deposited **{amount}** gold.\nThere is now **{new_amount}** gold in your bank.")
     else:
         ctx.respond("You do not have enough gold to deposit! Broke lookin ass :skull:")
 
 
-# @plugin.command()
-# @lightbulb.command('bank claim', 'claim the interest from your bank account')
-# @lightbulb.implements(lightbulb.SlashCommand)
-# async def bank(ctx):
-#     id = ctx.member.id
-#     db = get_db()
-#     bank = db.execute("SELECT bankbal, banklvl, bankclaim FROM economy WHERE id = ?", (id,)).fetchone()
-#     print(bank[0], bank[1])  
-#     await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+@plugin.command()
+@lightbulb.option('amount', 'how much would you like to withdraw', type=int, min_value=0)
+@lightbulb.command('withdraw', 'withdraw money from your bank')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def withdraw(ctx):
+    id = ctx.member.id
+    amount = ctx.options.amount
+    db = get_db()
+    check_id(id, db)
+    bankinfo = db.execute("SELECT gold, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
+    if amount <= bankinfo[1]:
+        newGold = bankinfo[0]+amount
+        newBankBal = bankinfo[1]-amount
+        db.execute("UPDATE economy SET gold = ?, bankbal = ? WHERE id = ?", (newGold, newBankBal, id))
+        await ctx.respond(f"*Cha Ching!* You withdrew **{amount}** gold!\nYou now have **{newGold}** gold in your wallet and **{newBankBal}** gold in your bank.")
+        db.commit()
+    else:
+        await ctx.respond("There is not enough gold in your bank!")
 
 
 # @plugin.command()
