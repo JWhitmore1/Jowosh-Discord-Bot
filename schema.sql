@@ -14,6 +14,6 @@ CREATE TABLE IF NOT EXISTS economy (
     dayclaim INT DEFAULT 0,
     streak INT DEFAULT 0,
     maxbal FLOAT DEFAULT 50.00,
-    interest FLOAT DEFAULT 1.015,
+    interest FLOAT DEFAULT 1.01,
     bankbal FLOAT DEFAULT 0.00
 );
