@@ -87,16 +87,16 @@ async def bankInfo(ctx):
     await ctx.respond(info)
 
 
-@lightbulb.option('amount', "how much gold do you want to deposit", type=int)
+@lightbulb.option('amount', "how much gold do you want to deposit", type=int, min_value="0")
 @lightbulb.command('bank-deposit', 'deposit gold into your bank account')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def deposit(ctx):
     amount = int(ctx.options.amount)
-    if int(amount) > 0:
-        id = ctx.member.id
-        db = get_db()
-        check_id(id, db)
-        bankinfo = db.execute("SELECT gold, maxbal, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
+    id = ctx.member.id
+    db = get_db()
+    check_id(id, db)
+    bankinfo = db.execute("SELECT gold, maxbal, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
+    if bankinfo[0] >= amount:
         new_amount = bankinfo[2] + amount
         if new_amount > bankinfo[1]:
             await ctx.respond("You cannot deposit more than the max value!")
@@ -105,8 +105,7 @@ async def deposit(ctx):
             db.commit()
             await ctx.respond(f"Successfully deposited **{amount}** gold.\nThere is now **{new_amount}** gold in your bank")
     else:
-        await ctx.respond("Please deposit an amount greater than 0")
-
+        ctx.respond("You do not have enough gold to deposit! Broke lookin ass :skull:")
 
 
 @lightbulb.command('bank claim', 'claim the interest from your bank account')
