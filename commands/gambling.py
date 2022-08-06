@@ -6,9 +6,9 @@ f = open('options.txt', 'r')
 options_8ball = f.read().split('\n')
 # print(options_8ball)
 
-gambling_plugin = lightbulb.Plugin("Gambling")
+plugin = lightbulb.Plugin("Gambling")
 
-@lightbulb.plugin()
+@plugin.command()
 @lightbulb.option('question', 'Ask away', type=str)
 @lightbulb.command('8ball', 'What will the ball decide!?!?')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -16,7 +16,7 @@ async def ball(ctx):
     await ctx.respond(ctx.options.question + '\n :8ball:  |  ' + random.choice(options_8ball))
 
 
-@lightbulb.plugin()
+@plugin.command()
 @lightbulb.command('coinflip', 'do you get head or tail!?')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def flip(ctx):
@@ -28,9 +28,9 @@ async def flip(ctx):
 
 
 def load(bot: lightbulb.BotApp):
-    bot.add_plugin(gambling_plugin)
+    bot.add_plugin(plugin)
 
 
 def unload(bot: lightbulb.BotApp):
-    bot.remove_plugin(gambling_plugin)
+    bot.remove_plugin(plugin)
 

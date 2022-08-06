@@ -34,10 +34,10 @@ def interact(ctx, type):
     embed.set_image(gif)
     return embed
 
-interact_plugin = lightbulb.Plugin("Interact")
+plugin = lightbulb.Plugin("Interact")
 
 
-@lightbulb.plugin()
+@plugin.command()
 @lightbulb.option('user', 'Who to hug?', hikari.User)
 @lightbulb.command('hug', 'Give this person a big hug!')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -46,7 +46,7 @@ async def hug(ctx):
     await ctx.respond(embed)
 
 
-@lightbulb.plugin()
+@plugin.command()
 @lightbulb.option('user', 'Who to kiss?', hikari.User)
 @lightbulb.command('kiss', 'Give this person a passionate kiss!')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -55,7 +55,7 @@ async def kiss(ctx):
     await ctx.respond(embed)
 
 
-@lightbulb.plugin()
+@plugin.command()
 @lightbulb.option('user', 'Who to slap?', hikari.User)
 @lightbulb.command('slap', 'Give this person a slap!')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -64,7 +64,7 @@ async def slap(ctx):
     await ctx.respond(embed)
 
 
-@lightbulb.plugin()
+@plugin.command()
 @lightbulb.option('user', 'Who to bite?', hikari.User)
 @lightbulb.command('bite', 'Give this person a bite!')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -73,7 +73,7 @@ async def bite(ctx):
     await ctx.respond(embed)
 
 
-@lightbulb.plugin()
+@plugin.command()
 @lightbulb.option('user', 'Who to pat?', hikari.User)
 @lightbulb.command('pat', 'Give this person a pat!')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -82,7 +82,7 @@ async def pat(ctx):
     await ctx.respond(embed)
 
 
-@lightbulb.plugin
+@plugin.command
 @lightbulb.option('user', 'who to kill', hikari.User)
 @lightbulb.command('kill', 'kill.')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -111,8 +111,8 @@ async def kill(ctx):
 
 
 def load(bot: lightbulb.BotApp):
-    bot.add_plugin(interact_plugin)
+    bot.add_plugin(plugin)
 
 
 def unload(bot: lightbulb.BotApp):
-    bot.remove_plugin(interact_plugin)
+    bot.remove_plugin(plugin)

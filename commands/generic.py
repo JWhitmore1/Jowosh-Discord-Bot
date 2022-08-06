@@ -1,8 +1,9 @@
 import lightbulb
 import hikari
 
-generic_plugin = lightbulb.Plugin("Generic")
+plugin = lightbulb.Plugin("Generic")
 
+@plugin.command()
 @lightbulb.command('invite', 'Invite Jowosh to another server')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def invite(ctx):
@@ -12,8 +13,8 @@ async def invite(ctx):
 
 
 def load(bot: lightbulb.BotApp):
-    bot.add_plugin(generic_plugin)
+    bot.add_plugin(plugin)
 
 
 def unload(bot: lightbulb.BotApp):
-    bot.remove_plugin(generic_plugin)
+    bot.remove_plugin(plugin)

@@ -6,7 +6,7 @@ from db import get_db
 
 
 reset_time = "0600"
-daily_plugin = lightbulb.Plugin("Daily")
+plugin = lightbulb.Plugin("Daily")
 sched = AsyncIOScheduler()
 sched.start()
 
@@ -29,7 +29,7 @@ async def daily_reset() -> None:
             interest = user[2]
             max_bal = user[3]
 
-            new_bal = round(bankbal * interest, 2)
+            new_bal = round(bank_bal * interest, 2)
 
             if new_bal > max_bal:
                 db.execute("UPDATE economy SET bankbal = ? WHERE id = ?", (max_bal, id))
@@ -40,4 +40,4 @@ async def daily_reset() -> None:
 
 
 def load(bot: lightbulb.BotApp) -> None:
-    bot.add_plugin(daily_plugin)
+    bot.add_plugin(plugin)
