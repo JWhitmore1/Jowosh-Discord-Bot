@@ -1,13 +1,17 @@
 import lightbulb
 import hikari
 
+communication_plugin = lightbulb.Plugin("Communication")
 
+
+@lightbulb.plugin()
 @lightbulb.command('guydisintegratinggif', 'just a guy disintegrating dw bout it')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def disintegrate(ctx):
     await ctx.respond(hikari.File("./static/gif/guydisintegratinggif.gif"))
 
 
+@lightbulb.plugin()
 @lightbulb.option('text', 'What will Jowosh say', type=str)
 @lightbulb.command('say', 'Speak vicariously through Jowosh')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -17,6 +21,7 @@ async def say(ctx):
     await ctx.respond('** **', delete_after=0)
 
 
+@lightbulb.plugin()
 @lightbulb.option('text', 'What will Jowosh say', type=str)
 @lightbulb.command('banner', 'Speak through Jowosh, clearly!')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -48,12 +53,8 @@ async def banner(ctx):
 
 
 def load(bot: lightbulb.BotApp):
-    bot.command(say)
-    bot.command(banner)
-    bot.command(disintegrate)
+    bot.add_plugin(communication_plugin)
 
 
 def unload(bot: lightbulb.BotApp):
-    bot.remove_command(bot.get_slash_command("say"))
-    bot.remove_command(bot.get_slash_command("banner"))
-    bot.remove_command(bot.get_slash_command("disintegrate"))
+    bot.remove_plugin(communication_plugin)
