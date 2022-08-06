@@ -9,12 +9,12 @@ async def disintegrate(ctx):
 
 
 @lightbulb.option('text', 'What will Jowosh say', type=str)
-@lightbulb.command('say', 'Speak vicariously through Jowosh')
+@lightbulb.command('say', 'Speak vicariously through Jowosh', ephemeral=True)
 @lightbulb.implements(lightbulb.SlashCommand)
 async def say(ctx):
     channel = ctx.get_channel()
     await channel.send(ctx.options.text)
-    await ctx.respond('** **', delete_after=0)
+    await ctx.respond(f'You got Jowosh to say: {ctx.options.text}')
 
 
 @lightbulb.option('text', 'What will Jowosh say', type=str)
