@@ -10,15 +10,37 @@ from hikari import Embed
 plugin = lightbulb.Plugin("Economy")
 
 
+def generateEconEmbed(type, gold, bal, blvl, maxb, ilvl, i, action, ctx):
+    e = hikari.Embed(title=f"{str((ctx.member)).split('#')[0]}'s bank", color="#FFD700")
+    if type == 'info':
+        e.add_field(name="Balances", value=f"Wallet: **{gold}** gold\n Bank: **{bal}** gold")
+        e.add_field(name="Leveling", value=f"Balance level **{blvl}**: **{maxb}** max gold \n Interest level **{ilvl}**:  **{p(i)}%**")
+        e.add_field(name="Earning", value=f"You will accrue **{round(bal*(i - 1), 2)}** gold in the next hour")
+        e.add_field(name="** **", value="** **")
+    
+    if type == 'action':
+        if action == 'deposit':
+            e.add_field(name="** **", value=f"Successfully deposited **{ctx.options.amount}** gold into your bank!")
+            e.add_field()
+        if action == 'withdraw':
+            pass
+        if action == 'upgradeB':
+            pass
+        if action == 'upgradeI':
+            pass
+
+    return e
+
+
 def timedelta(reset):
     curr = (int(datetime.strftime(datetime.now(),"%I")) * 60) + int(datetime.strftime(datetime.now(),"%M"))
     if curr > 720:
-        deltaM = (720 - curr) + (reset * 60)
+        delta_mins = (720 - curr) + (reset * 60)
     else:
-        deltaM = (reset * 60) - curr
+        delta_mins = (reset * 60) - curr
 
-    hour = str(int(deltaM / 60))
-    minute = str(deltaM % 60)
+    hour = str(int(delta_mins / 60))
+    minute = str(delta_mins % 60)
 
     return f"{hour}h {minute}m"
 
@@ -90,16 +112,10 @@ async def bank(ctx):
     db = get_db()
     check_econ_id(id, db)
     bankinfo = db.execute("SELECT bankbal, maxbal, interest, gold FROM economy WHERE id = ?", (id,)).fetchone()
-    intamount = round(bankinfo[0]*(bankinfo[2] - 1), 2)
     balLevel = int(getBalLevel(bankinfo[1]))
     intLevel = int(getIntLevel(bankinfo[2]))
 
-    info = hikari.Embed(title=f":bank: | Jowosh Bank", color="#FFD700")
-    info.add_field(name="Bank Info\n", value=f"There is currently **{bankinfo[3]}** gold in your wallet, and **{bankinfo[0]}** gold in your bank account.")
-    info.add_field(name="** **", value=f"Your maximum balance is level **{balLevel}** and can hold **{bankinfo[1]}** gold!")
-    info.add_field(name="** **", value=f"Your hourly interest rate is level **{intLevel}**, with **{p(bankinfo[2])}%**. You will accrue **{intamount}** gold in the next hour!")
-    info.add_field(name="** **", value="** **")
-    info.set_footer(text="upgrade balance and interest with /upgrade")
+    info = generateEconEmbed("info", bankinfo[3], bankinfo[0], balLevel, bankinfo[1], intLevel, bankinfo[2], None, ctx)
 
     await ctx.respond(info)
 
