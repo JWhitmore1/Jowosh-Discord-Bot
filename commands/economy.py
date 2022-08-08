@@ -1,48 +1,13 @@
-from ast import Try
 import hikari
 import lightbulb
 import random
 from datetime import datetime
 from db import get_db, check_econ_id
 from datetime import datetime
-from hikari import Embed
 
 plugin = lightbulb.Plugin("Economy")
-
-
-def generateEconEmbed(type, gold, bal, blvl, maxb, ilvl, i, action, ctx):
-    e = hikari.Embed(title=f"{str((ctx.member)).split('#')[0]}'s bank", color="#FFD700")
-    if type == 'info':
-        e.add_field(name="Balances", value=f"Wallet: **{gold}** gold\n Bank: **{bal}** gold")
-        e.add_field(name="Leveling", value=f"Balance level **{blvl}**: **{maxb}** max gold \n Interest level **{ilvl}**:  **{p(i)}%**")
-        e.add_field(name="Earning", value=f"You will accrue **{round(bal*(i - 1), 2)}** gold in the next hour")
-        e.add_field(name="** **", value="** **")
-    
-    if type == 'action':
-        if action == 'deposit':
-            e.add_field(name="** **", value=f"Successfully deposited **{ctx.options.amount}** gold into your bank!")
-            e.add_field()
-        if action == 'withdraw':
-            pass
-        if action == 'upgradeB':
-            pass
-        if action == 'upgradeI':
-            pass
-
-    return e
-
-
-def timedelta(reset):
-    curr = (int(datetime.strftime(datetime.now(),"%I")) * 60) + int(datetime.strftime(datetime.now(),"%M"))
-    if curr > 720:
-        delta_mins = (720 - curr) + (reset * 60)
-    else:
-        delta_mins = (reset * 60) - curr
-
-    hour = str(int(delta_mins / 60))
-    minute = str(delta_mins % 60)
-
-    return f"{hour}h {minute}m"
+intr_increment = 0.001
+bal_increment = 50
 
 
 def p(rate):
@@ -63,6 +28,18 @@ def getBalLevel(curr_max):
 
 def getBalPrice(level):
     return 500*(level)**2
+
+def timedelta(reset):
+    curr = (int(datetime.strftime(datetime.now(),"%I")) * 60) + int(datetime.strftime(datetime.now(),"%M"))
+    if curr > 720:
+        delta_mins = (720 - curr) + (reset * 60)
+    else:
+        delta_mins = (reset * 60) - curr
+
+    hour = str(int(delta_mins / 60))
+    minute = str(delta_mins % 60)
+
+    return f"{hour}h {minute}m"
 
 
 @plugin.command()
@@ -105,17 +82,27 @@ async def daily(ctx):
 
 
 @plugin.command()
+@lightbulb.option('user', 'which users bank do you want to view', hikari.User, required=False)
 @lightbulb.command('bank', 'view your bank account info')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def bank(ctx):
-    id = ctx.member.id
+    if ctx.options.user != None:
+        id = ctx.options.user.id
+        name = str(ctx.options.user).split('#')[0]
+    else:
+        id = ctx.member.id
+        name = str(ctx.member).split('#')[0]
     db = get_db()
     check_econ_id(id, db)
     bankinfo = db.execute("SELECT bankbal, maxbal, interest, gold FROM economy WHERE id = ?", (id,)).fetchone()
     balLevel = int(getBalLevel(bankinfo[1]))
     intLevel = int(getIntLevel(bankinfo[2]))
+    newAmount = round(bankinfo[0]*bankinfo[2], 2)
 
-    info = generateEconEmbed("info", bankinfo[3], bankinfo[0], balLevel, bankinfo[1], intLevel, bankinfo[2], None, ctx)
+    info = hikari.Embed(title=f"{name}'s bank", color="#FFD700")
+    info.add_field(name="Balances", value=f"Wallet: **{bankinfo[3]}** gold\nBank: **{bankinfo[0]}** gold")
+    info.add_field(name="Leveling", value=f"Balance level **{balLevel}:** **{bankinfo[1]}** max gold\nInterest level **{intLevel}:**  **{p(bankinfo[2])}%**")
+    info.add_field(name="Earning", value=f"You will accrue **{newAmount}** gold every hour")
 
     await ctx.respond(info)
 
@@ -131,13 +118,17 @@ async def deposit(ctx):
     check_econ_id(id, db)
     bankinfo = db.execute("SELECT gold, maxbal, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
     if bankinfo[0] >= amount:
-        new_amount = bankinfo[2] + amount
-        if new_amount > bankinfo[1]:
+        newBankBal = bankinfo[2] + amount
+        if newBankBal > bankinfo[1]:
             await ctx.respond("You cannot deposit more than the max value!")
         else:
-            db.execute("UPDATE economy SET bankbal = ?, gold = ? WHERE ID = ?", (new_amount, bankinfo[0]-amount, id))
+            db.execute("UPDATE economy SET bankbal = ?, gold = ? WHERE ID = ?", (newBankBal, bankinfo[0]-amount, id))
             db.commit()
-            await ctx.respond(f"Successfully deposited **{amount}** gold.\nThere is now **{new_amount}** gold in your bank.")
+            
+            info = hikari.Embed(title=f"{ctx.member}'s bank", color="#FFD700")
+            info.add_field(name="Deposit", value=f"Successfully deposited **{amount}** gold into your bank!\nBalance: **{bankinfo[2]} -> {newBankBal}** gold!")
+            
+            await ctx.respond(info)
     else:
         ctx.respond("You do not have enough gold to deposit! Broke lookin ass :skull:")
 
@@ -156,8 +147,12 @@ async def withdraw(ctx):
         newGold = bankinfo[0]+amount
         newBankBal = bankinfo[1]-amount
         db.execute("UPDATE economy SET gold = ?, bankbal = ? WHERE id = ?", (newGold, newBankBal, id))
-        await ctx.respond(f"*Cha Ching!* You withdrew **{amount}** gold!\nYou now have **{newGold}** gold in your wallet and **{newBankBal}** gold in your bank.")
         db.commit()
+
+        info = hikari.Embed(title=f"{ctx.member}'s bank", color="#FFD700")
+        info.add_field(name="Withdraw", value=f"Successfully withdrew **{amount}** from your bank!\nBalance: **{bankinfo[1]} -> {newBankBal}** gold!")
+        
+        await ctx.respond(info)
     else:
         await ctx.respond("There is not enough gold in your bank!")
 
@@ -166,40 +161,48 @@ async def withdraw(ctx):
 @lightbulb.option('action', 'what would you like to upgrade', choices=('balance', 'interest'))
 @lightbulb.command('upgrade', 'upgrade the interest of your bank account')
 @lightbulb.implements(lightbulb.SlashCommand)
-async def upgradeInterest(ctx):
+async def upgrade(ctx):
     id = ctx.member.id
     db = get_db()
     check_econ_id(id, db)
     bankinfo = db.execute("SELECT gold, maxbal, interest FROM economy WHERE id = ?", (id,)).fetchone()
     gold = bankinfo[0]
 
-    if ctx.options.action == 'balance':
-        
+    info = hikari.Embed(title=f"{ctx.member}'s bank", color="#FFD700")
+
+    if ctx.options.action == 'interest':
+
         int_level = getIntLevel(bankinfo[2])
         int_price = int(getIntPrice(int_level))
 
         if int_price <= gold:
-            newInterest = round(bankinfo[2] + 0.001, 3)
+            newInterest = round(bankinfo[2] + intr_increment, 3)
             newLevel = int_level + 1
             newGold = gold - int_price
             db.execute("UPDATE economy SET interest = ?, gold = ? WHERE id = ?", (newInterest, newGold, id))
             db.commit()
-            await ctx.respond(f"Upgraded your interest level to **{newLevel}**, you now have **{p(newInterest)}%** interest!\nThe next upgrade will cost **{getIntPrice(newLevel)}** gold")
+            
+            info.add_field(name="Upgrade", value=f"Successfully upgraded interest to to **{p(newInterest)}%**!\n\nLevel: **{int_level} -> {newLevel}**\nInterest: **{p(bankinfo[2])} -> {p(newInterest)}%**")
+
+            await ctx.respond(info)
         else:
-            await ctx.respond(f"You don't have enough money to purchase this! This upgrade costs **{int_price}** gold")
+            await ctx.respond(info)
     
-    if ctx.options.action == 'interest':
+    if ctx.options.action == 'balance':
         
         bal_level = getBalLevel(bankinfo[1])
         bal_price = int(getBalPrice(bal_level))
 
         if bal_price <= gold:
-            newBal = bankinfo[1] + 50
+            newBal = bankinfo[1] + bal_increment
             newLevel = bal_level + 1
             newGold = gold - bal_price
             db.execute("UPDATE economy SET maxbal = ?, gold = ? WHERE id = ?", (newBal, newGold, id))
             db.commit()
-            await ctx.respond(f"Upgraded your balance level to **{newLevel}**, you can now hold **{newBal}** gold!\nThe next upgrade will cost **{getBalPrice(newLevel)}** gold")
+            
+            info.add_field(name="Upgrade", value=f"Successfully upgraded max balance to **{newBal}**!\n\nLevel: **{bal_level} -> {newLevel}**\nMax Balance: **{bankinfo[1]} -> {newBal}**")
+
+            await ctx.respond(info)
         else:
             await ctx.respond(f"You do not have enough gold in your wallet to upgrade this! The upgrade costs **{bal_price}** gold.")
 
