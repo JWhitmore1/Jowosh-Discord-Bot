@@ -16,7 +16,7 @@ def initialise():
 
     conn.executescript(schema)
 
-def check_id(id, db):
+def check_econ_id(id, db):
     if db.execute('SELECT * FROM economy WHERE ID = ?', (id,)).fetchone() is None:
         db.execute('INSERT INTO economy (ID) VALUES (?)', (id,))
 

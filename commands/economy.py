@@ -3,7 +3,7 @@ import hikari
 import lightbulb
 import random
 from datetime import datetime
-from db import get_db, check_id
+from db import get_db, check_econ_id
 from datetime import datetime
 from hikari import Embed
 
@@ -35,13 +35,21 @@ def getIntPrice(level):
     return round(100*(level**3), 2)
 
 
+def getBalLevel(curr_max):
+    return (curr_max - 50)/50
+
+
+def getBalPrice(level):
+    return 500*(level)**2
+
+
 @plugin.command()
 @lightbulb.command('daily', 'Claim your daily gold.')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def daily(ctx):
     id = ctx.member.id
     db = get_db()
-    check_id(id, db)
+    check_econ_id(id, db)
 
     if int(db.execute("SELECT dayclaim FROM economy WHERE ID = ?", (id,)).fetchone()[0]) == 0:
         current = int(db.execute("SELECT gold FROM economy WHERE ID = ?", (id,)).fetchone()[0])
@@ -80,16 +88,18 @@ async def daily(ctx):
 async def bank(ctx):
     id = ctx.member.id
     db = get_db()
-    check_id(id, db)
-    bank = db.execute("SELECT bankbal, maxbal, interest, gold FROM economy WHERE id = ?", (id,)).fetchone()
-    intamount = round(bank[0]*(bank[2] - 1), 2)
+    check_econ_id(id, db)
+    bankinfo = db.execute("SELECT bankbal, maxbal, interest, gold FROM economy WHERE id = ?", (id,)).fetchone()
+    intamount = round(bankinfo[0]*(bankinfo[2] - 1), 2)
+    balLevel = int(getBalLevel(bankinfo[1]))
+    intLevel = int(getIntLevel(bankinfo[2]))
 
     info = hikari.Embed(title=f":bank: | Jowosh Bank", color="#FFD700")
-    info.add_field(name="Bank Info\n", value=f"There is currently **{bank[3]}** gold in your wallet, and **{bank[0]}** gold in your bank account.")
-    info.add_field(name="** **", value=f"Your maximum balance is level **___** and can hold **{bank[1]}** gold!")
-    info.add_field(name="** **", value=f"Your hourly interest rate is level **{getIntLevel(bank[2])}**, with **{p(bank[2])}%**. You will accrue **{intamount}** gold in the next hour!")
+    info.add_field(name="Bank Info\n", value=f"There is currently **{bankinfo[3]}** gold in your wallet, and **{bankinfo[0]}** gold in your bank account.")
+    info.add_field(name="** **", value=f"Your maximum balance is level **{balLevel}** and can hold **{bankinfo[1]}** gold!")
+    info.add_field(name="** **", value=f"Your hourly interest rate is level **{intLevel}**, with **{p(bankinfo[2])}%**. You will accrue **{intamount}** gold in the next hour!")
     info.add_field(name="** **", value="** **")
-    info.set_footer(text="upgrade bank with /upgradeblahblahsuckmyfuckingdickihatethis")
+    info.set_footer(text="upgrade balance and interest with /upgrade")
 
     await ctx.respond(info)
 
@@ -102,7 +112,7 @@ async def deposit(ctx):
     amount = ctx.options.amount
     id = ctx.member.id
     db = get_db()
-    check_id(id, db)
+    check_econ_id(id, db)
     bankinfo = db.execute("SELECT gold, maxbal, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
     if bankinfo[0] >= amount:
         new_amount = bankinfo[2] + amount
@@ -124,7 +134,7 @@ async def withdraw(ctx):
     id = ctx.member.id
     amount = ctx.options.amount
     db = get_db()
-    check_id(id, db)
+    check_econ_id(id, db)
     bankinfo = db.execute("SELECT gold, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
     if amount <= bankinfo[1]:
         newGold = bankinfo[0]+amount
@@ -137,51 +147,65 @@ async def withdraw(ctx):
 
 
 @plugin.command()
-@lightbulb.command('upgrade-balance', 'upgrade the max balance of your bank account')
+@lightbulb.option('action', 'what would you like to upgrade', choices=('balance', 'interest'))
+@lightbulb.command('upgrade', 'upgrade the interest of your bank account')
 @lightbulb.implements(lightbulb.SlashCommand)
-async def upgradeBalance(ctx):
+async def upgradeInterest(ctx):
     id = ctx.member.id
     db = get_db()
-    check_id(id, db)
-
+    check_econ_id(id, db)
     bankinfo = db.execute("SELECT gold, maxbal, interest FROM economy WHERE id = ?", (id,)).fetchone()
     gold = bankinfo[0]
-    int_level = getIntLevel(bankinfo[2])
-    int_price = int(getIntPrice(int_level))
 
-    if int_price <= bankinfo[0]:
-        newInterest = round(bankinfo[2] + 0.001, 3)
-        newLevel = int_level + 1
-        newGold = gold - int_price
-        db.execute("UPDATE economy SET interest = ?, gold = ? WHERE id = ?", (newInterest, newGold, id))
-        db.commit()
-        await ctx.respond(f"Upgraded your interest level to **{newLevel}**, you now have **{p(newInterest)}%** interest!\nThe next upgrade will cost **{getIntPrice(newLevel)}** gold")
-    else:
-        await ctx.respond(f"You don't have enough money to purchase this! This upgrade costs **{int_price}** gold")
+    if ctx.options.action == 'balance':
+        
+        int_level = getIntLevel(bankinfo[2])
+        int_price = int(getIntPrice(int_level))
+
+        if int_price <= gold:
+            newInterest = round(bankinfo[2] + 0.001, 3)
+            newLevel = int_level + 1
+            newGold = gold - int_price
+            db.execute("UPDATE economy SET interest = ?, gold = ? WHERE id = ?", (newInterest, newGold, id))
+            db.commit()
+            await ctx.respond(f"Upgraded your interest level to **{newLevel}**, you now have **{p(newInterest)}%** interest!\nThe next upgrade will cost **{getIntPrice(newLevel)}** gold")
+        else:
+            await ctx.respond(f"You don't have enough money to purchase this! This upgrade costs **{int_price}** gold")
+    
+    if ctx.options.action == 'interest':
+        
+        bal_level = getBalLevel(bankinfo[1])
+        bal_price = int(getBalPrice(bal_level))
+
+        if bal_price <= gold:
+            newBal = bankinfo[1] + 50
+            newLevel = bal_level + 1
+            newGold = gold - bal_price
+            db.execute("UPDATE economy SET maxbal = ?, gold = ? WHERE id = ?", (newBal, newGold, id))
+            db.commit()
+            await ctx.respond(f"Upgraded your balance level to **{newLevel}**, you can now hold **{newBal}** gold!\nThe next upgrade will cost **{getBalPrice(newLevel)}** gold")
+        else:
+            await ctx.respond(f"You do not have enough gold in your wallet to upgrade this! The upgrade costs **{bal_price}** gold.")
 
 
 @plugin.command()
-@lightbulb.option('amount', "how much gold do you want to set", type=int, min_value=0)
-@lightbulb.command('set', 'set gold in your bank account')
+@lightbulb.app_command_permissions(perms=8)
+@lightbulb.option('amount', 'how much gold do you want to set', type=int, min_value=0)
+@lightbulb.option('user', 'which user do you want to set', hikari.User, required=False)
+@lightbulb.command('set-gold', 'set gold in your bank account')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def set(ctx):
     amount = ctx.options.amount
-    id = ctx.member.id
+    if ctx.options.user != None:
+        recipitent = ctx.options.user.id
+    else:
+        recipitent = ctx.member.id
+    
     db = get_db()
-    check_id(id, db)
-    db.execute("UPDATE economy SET gold = ? WHERE id = ?", (amount, id)).fetchone()
+    check_econ_id(recipitent, db)
+    db.execute("UPDATE economy SET gold = ? WHERE id = ?", (amount, recipitent)).fetchone()
     db.commit()
-    await ctx.respond(f"set your wallet to {amount}")
-
-# @plugin.command()
-# @lightbulb.command('bank upgrade interest', 'upgrade interest your bank account')
-# @lightbulb.implements(lightbulb.SlashCommand)
-# async def bank(ctx):
-#     id = ctx.member.id
-#     db = get_db()
-#     bank = db.execute("SELECT bankbal, banklvl, bankclaim FROM economy WHERE id = ?", (id,)).fetchone()
-#     print(bank[0], bank[1])  
-#     await ctx.respond(f"You currently have **{str(bal[0])}** gold.\nYour bank has **{str(bal[1])}** gold.")
+    await ctx.respond(f"set wallet to {amount}")
 
 
 def load(bot: lightbulb.BotApp):
