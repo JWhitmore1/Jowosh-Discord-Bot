@@ -29,9 +29,10 @@ def getBalLevel(curr_max):
 def getBalPrice(level):
     return 500*(level)**2
 
-def timedelta(reset):
+
+def timeUntil(reset):
     curr = (int(datetime.strftime(datetime.now(),"%I")) * 60) + int(datetime.strftime(datetime.now(),"%M"))
-    if curr > 720:
+    if curr < 720:
         delta_mins = (720 - curr) + (reset * 60)
     else:
         delta_mins = (reset * 60) - curr
@@ -78,7 +79,7 @@ async def daily(ctx):
 
         await ctx.respond(f":coin: | {prefix[i]} You got {amount} gold")
     else:
-        await ctx.respond(f"You have already claimed in this period.\nYou can claim again in **{timedelta(6)}**.")
+        await ctx.respond(f"You have already claimed in this period.\nYou can claim again in **{timeUntil(6)}**.")
 
 
 @plugin.command()
@@ -97,7 +98,7 @@ async def bank(ctx):
     bankinfo = db.execute("SELECT bankbal, maxbal, interest, gold FROM economy WHERE id = ?", (id,)).fetchone()
     balLevel = int(getBalLevel(bankinfo[1]))
     intLevel = int(getIntLevel(bankinfo[2]))
-    newAmount = round(bankinfo[0]*bankinfo[2], 2)
+    newAmount = round(bankinfo[0]*(bankinfo[2]-1), 2)
 
     info = hikari.Embed(title=f"{name}'s bank", color="#FFD700")
     info.add_field(name="Balances", value=f"Wallet: **{bankinfo[3]}** gold\nBank: **{bankinfo[0]}** gold")
@@ -189,7 +190,7 @@ async def upgrade(ctx):
 
             await ctx.respond(info)
         else:
-            await ctx.respond(info)
+            await ctx.respond(f"You do not have enough gold in your wallet to upgrade this! The upgrade costs **{int_price}** gold.")
     
     if ctx.options.action == 'balance':
         
