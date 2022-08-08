@@ -15,7 +15,7 @@ def p(rate):
 
 
 def getIntLevel(curr_interest):
-    return round((curr_interest - 1.01)/0.001, 0)
+    return int(round((curr_interest - 1.01)/0.001, 0))
 
 
 def getIntPrice(level):
@@ -23,7 +23,7 @@ def getIntPrice(level):
 
 
 def getBalLevel(curr_max):
-    return (curr_max - 50)/50
+    return int((curr_max - 50)/50)
 
 
 def getBalPrice(level):
@@ -114,6 +114,7 @@ async def bank(ctx):
 async def deposit(ctx):
     amount = ctx.options.amount
     id = ctx.member.id
+    name = str(ctx.member).split('#')[0]
     db = get_db()
     check_econ_id(id, db)
     bankinfo = db.execute("SELECT gold, maxbal, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
@@ -125,7 +126,7 @@ async def deposit(ctx):
             db.execute("UPDATE economy SET bankbal = ?, gold = ? WHERE ID = ?", (newBankBal, bankinfo[0]-amount, id))
             db.commit()
             
-            info = hikari.Embed(title=f"{ctx.member}'s bank", color="#FFD700")
+            info = hikari.Embed(title=f"{name}'s bank", color="#FFD700")
             info.add_field(name="Deposit", value=f"Successfully deposited **{amount}** gold into your bank!\nBalance: **{bankinfo[2]} -> {newBankBal}** gold!")
             
             await ctx.respond(info)
@@ -140,6 +141,7 @@ async def deposit(ctx):
 async def withdraw(ctx):
     id = ctx.member.id
     amount = ctx.options.amount
+    name = str(ctx.member).split('#')[0]
     db = get_db()
     check_econ_id(id, db)
     bankinfo = db.execute("SELECT gold, bankbal FROM economy WHERE id = ?", (id,)).fetchone()
@@ -149,7 +151,7 @@ async def withdraw(ctx):
         db.execute("UPDATE economy SET gold = ?, bankbal = ? WHERE id = ?", (newGold, newBankBal, id))
         db.commit()
 
-        info = hikari.Embed(title=f"{ctx.member}'s bank", color="#FFD700")
+        info = hikari.Embed(title=f"{name}'s bank", color="#FFD700")
         info.add_field(name="Withdraw", value=f"Successfully withdrew **{amount}** from your bank!\nBalance: **{bankinfo[1]} -> {newBankBal}** gold!")
         
         await ctx.respond(info)
@@ -163,12 +165,13 @@ async def withdraw(ctx):
 @lightbulb.implements(lightbulb.SlashCommand)
 async def upgrade(ctx):
     id = ctx.member.id
+    name = str(ctx.member).split('#')[0]
     db = get_db()
     check_econ_id(id, db)
     bankinfo = db.execute("SELECT gold, maxbal, interest FROM economy WHERE id = ?", (id,)).fetchone()
     gold = bankinfo[0]
 
-    info = hikari.Embed(title=f"{ctx.member}'s bank", color="#FFD700")
+    info = hikari.Embed(title=f"{name}'s bank", color="#FFD700")
 
     if ctx.options.action == 'interest':
 
