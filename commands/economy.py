@@ -219,13 +219,13 @@ async def upgrade(ctx):
 async def set(ctx):
     amount = ctx.options.amount
     if ctx.options.user != None:
-        recipitent = ctx.options.user.id
+        recipient = ctx.options.user.id
     else:
-        recipitent = ctx.member.id
+        recipient = ctx.member.id
     
     db = get_db()
-    check_econ_id(recipitent, db)
-    db.execute("UPDATE economy SET gold = ? WHERE id = ?", (amount, recipitent)).fetchone()
+    check_econ_id(recipient, db)
+    db.execute("UPDATE economy SET gold = ? WHERE id = ?", (amount, recipient)).fetchone()
     db.commit()
     await ctx.respond(f"set wallet to {amount}")
 
