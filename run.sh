@@ -1,8 +1,8 @@
 #!/bin/bash
-echo yourscript.sh called: `date`
+echo run.sh called: `date`
 
 HOME = /home/pi/
-PYTHONPATH = /usr/local/bin/python3   
+PYTHONPATH = /usr/local/bin/python3
 
 # script to run on startup on RPI server
 # wait for internet connection before runnning
@@ -14,5 +14,10 @@ done
 echo "network is up now"
 
 cd /home/pi/Jowosh-Discord-Bot/
-git pull 
-/usr/bin/python /home/pi/Jowosh-Discord-Bot/bot.py 
+git pull
+
+cd server
+screen -S lavalink -X quit || true # Kill lavalink if already running
+screen -S lavalink -dm java -jar Lavalink.jar # Run lavalink
+cd ..
+/usr/bin/python /home/pi/Jowosh-Discord-Bot/bot.py # Run bot
