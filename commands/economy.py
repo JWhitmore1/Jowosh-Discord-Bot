@@ -32,10 +32,13 @@ def getBalPrice(level):
 
 def timeUntil(reset):
     curr = (int(datetime.strftime(datetime.now(),"%I")) * 60) + int(datetime.strftime(datetime.now(),"%M"))
-    if curr > 720:
+    print(curr)
+    if curr > (reset*60):
         delta_mins = (720 - curr) + (reset * 60)
+        print("if")
     else:
         delta_mins = (reset * 60) - curr
+        print("else")
 
     hour = str(int(delta_mins / 60))
     minute = str(delta_mins % 60)
