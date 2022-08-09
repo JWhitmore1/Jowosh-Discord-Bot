@@ -1,126 +1,201 @@
 import os
+import math
 
 import lightbulb
 import hikari
-import lavasnek_rs
+import lavaplayer
+import asyncio
 
 import logging
 
-
-class EventHandler:
-    """Events from the Lavalink server"""
-
-    async def track_start(self, _: lavasnek_rs.Lavalink, event: lavasnek_rs.TrackStart) -> None:
-        logging.info("Track started on guild: %s", event.guild_id)
-
-    async def track_finish(self, _: lavasnek_rs.Lavalink, event: lavasnek_rs.TrackFinish) -> None:
-        logging.info("Track finished on guild: %s", event.guild_id)
-
-    async def track_exception(self, lavalink: lavasnek_rs.Lavalink, event: lavasnek_rs.TrackException) -> None:
-        logging.warning("Track exception event happened on guild: %d", event.guild_id)
-
-        # If a track was unable to be played, skip it
-        skip = await lavalink.skip(event.guild_id)
-        node = await lavalink.get_guild_node(event.guild_id)
-
-        if not node:
-            return
-
-        if skip and not node.queue and not node.now_playing:
-            await lavalink.stop(event.guild_id)
-
-
 plugin = lightbulb.Plugin("Music")
 
+lavalink = lavaplayer.LavalinkClient(
+    host=os.environ.get("lavalink_host", "localhost"),
+    port=os.environ.get("lavalink_port", 2333),
+    password=os.environ.get("lavalink_password"),
+)
 
-# function for bot to join author's voice channel
-async def _join(ctx):
-    channel = ctx.bot.cache.get_voice_state(ctx.guild_id, ctx.member).channel_id
-    guild = ctx.guild_id
+@plugin.listener(hikari.StartedEvent)
+async def on_start(event: hikari.StartedEvent):
+    logging.info("Connecting to lavalink instance")
+    lavalink.set_user_id(plugin.bot.get_me().id)
+    lavalink.set_event_loop(asyncio.get_event_loop())
+    lavalink.connect()
 
-    # connects the bot to voice channel
-    await ctx.bot.update_voice_state(guild, channel)
+@plugin.listener(hikari.VoiceStateUpdateEvent)
+async def voice_state_update(event: hikari.VoiceStateUpdateEvent):
+    await lavalink.raw_voice_state_update(event.guild_id, event.state.user_id, event.state.session_id, event.state.channel_id)
 
-    # EVERYTHING STABLE EXCEPT THiS DEMON SPAWN OF CODE FUCK YOU HIKARI AND LAVALINK AND UR MOM
-    connection_info = await plugin.bot.d.lavalink.wait_for_full_connection_info_insert(guild)
-    await plugin.bot.d.lavalink.create_session(connection_info)
-
-    return channel
-
-
-@plugin.listener(hikari.ShardReadyEvent)
-async def start_lavalink(event):
-    builder = (
-        lavasnek_rs.LavalinkBuilder(event.my_user.id, os.environ.get('bot_token'))
-        .set_host('127.0.0.1')
-        .set_password(os.environ.get("lavalink_password"))
-    )
-
-    logging.info("Created Lavalink instance")
-
-    builder.set_start_gateway(False)
-
-    lava_client = await builder.build(EventHandler())
-
-    plugin.bot.d.lavalink = lava_client
-
+@plugin.listener(hikari.VoiceServerUpdateEvent)
+async def voice_server_update(event: hikari.VoiceServerUpdateEvent):
+    await lavalink.raw_voice_server_update(event.guild_id, event.endpoint, event.token)
 
 @plugin.command()
 @lightbulb.command('join', 'Get Jowosh to join your voice channel')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def join(ctx):
-    channel = await _join(ctx)
+    states = ctx.bot.cache.get_voice_states_view_for_guild(ctx.guild_id)
+    voice_state = [state async for state in states.iterator().filter(lambda i: i.user_id == ctx.author.id)]
+    if not voice_state:
+        await ctx.respond("Join a voice channel to use this command")
+        return
 
-    await ctx.respond(f"Joined <#{channel}>")
+    channel_id = voice_state[0].channel_id
+    await ctx.bot.update_voice_state(ctx.guild_id, channel_id, self_deaf=True)
+    await lavalink.wait_for_connection(ctx.guild_id)
 
+    await ctx.respond(f"Joined <#{channel_id}>")
 
 @plugin.command()
-@lightbulb.option('query', 'The query to search for', modifier=lightbulb.OptionModifier.CONSUME_REST)
+@lightbulb.option('query', 'The query to search for', required=True)
 @lightbulb.command('play', 'Get Jowosh to play a song/video')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def play(ctx):
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node:
+        await ctx.respond('I must be in your voice channel before you can use that command')
+        return
+
     query = ctx.options.query
-    if not query:
-        await ctx.respond('Please enter a search query.')
+    result = await lavalink.auto_search_tracks(query)
+    if not result:
+        await ctx.respond("No results found")
+        return
+    elif isinstance(result, lavaplayer.TrackLoadFailed):
+        await ctx.respond("Failed to load media, try again later.\n```{}```".format(result.message))
+        return
+    elif isinstance(result, lavaplayer.PlayList):
+        await lavalink.add_to_queue(ctx.guild_id, result.tracks, ctx.author.id)
+        await ctx.respond(f"Added {len(result.tracks)} tracks to queue")
         return
 
-    con = plugin.bot.d.lavalink.get_guild_gateway_connection_info(ctx.guild_id)
-    if not con:
-        await _join(ctx)
-
-    query_info = await plugin.bot.d.lavalink.auto_search_tracks(query)
-
-    if not query_info.tracks:
-        await ctx.respond('Could not find a video based on the query.')
-        return
-
-    await plugin.bot.d.lavalink.play(ctx.guild_id, query_info.tracks[0]).requester(ctx.author.id).queue()
-
-    await ctx.respond('temp')
-
+    await lavalink.play(ctx.guild_id, result[0], ctx.author.id)
+    await ctx.respond(f"[{result[0].title}]({result[0].uri})")
 
 @plugin.command()
-@lightbulb.command('stop', 'Get Jowosh to leave your channel')
+@lightbulb.command('leave', 'Get Jowosh to stop the music and leave')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def stop(ctx):
-    guild = ctx.guild_id
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node:
+        await ctx.respond('I must be in your voice channel before you can use that command')
+        return
 
-    await plugin.bot.d.lavalink.destroy(guild)
+    # Stop music is any is playing
+    try:
+        await lavalink.stop(ctx.guild_id)
+    except:
+        pass
 
-    # disconnects the bot from voice channel
-    await ctx.bot.update_voice_state(guild, None)
+    await plugin.bot.update_voice_state(ctx.guild_id, None)
+    await ctx.respond("Stopped the music")
 
-    await plugin.bot.d.lavalink.wait_for_connection_info_remove(guild)
+@plugin.command()
+@lightbulb.command(name='pause', description='Get Jowosh to pause the music')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def pause_command(ctx):
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node:
+        await ctx.respond('I must be in your voice channel before you can use that command')
+        return
 
-    await plugin.bot.d.lavalink.remove_guild_node(guild)
-    await plugin.bot.d.lavalink.remove_guild_from_loops(guild)
+    await lavalink.pause(ctx.guild_id, True)
+    await ctx.respond("Paused the music")
 
-    await ctx.respond('Disconnected.')
+@plugin.command()
+@lightbulb.command(name='resume', description='Get Jowosh to resume the music')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def resume_command(ctx):
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node:
+        await ctx.respond('I must be in your voice channel before you can use that command')
+        return
 
+    await lavalink.pause(ctx.guild_id, False)
+    await ctx.respond("Resumed the music")
+
+@plugin.command()
+@lightbulb.option(name='level', description='New level', type=int, min_value=0, max_value=1000, required=True)
+@lightbulb.command(name="volume", description='Change the volume')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def volume_command(ctx):
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node:
+        await ctx.respond('I must be in your voice channel before you can use that command')
+        return
+
+    volume = ctx.options.level
+    await lavalink.volume(ctx.guild_id, volume)
+    await ctx.respond(f"Set volume to {volume}%")
+
+@plugin.command()
+@lightbulb.command(name='queue', description='View the music queue')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def queue_command(ctx):
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node or not node.queue:
+        await ctx.respond('The queue is empty')
+        return
+
+    queue_str = ""
+    for index, track in enumerate(node.queue):
+        queue_str += f"{index + 1}. "
+        queue_str += f"[{track.title}]({track.uri}) "
+        total_seconds = round(track.length / 1000)
+        minutes = math.floor(total_seconds / 60)
+        seconds = str(total_seconds % 60).rjust(2, " ")
+        queue_str += f"({minutes}:{seconds})"
+        queue_str += "\n"
+
+    embed = hikari.Embed(description=queue_str)
+    await ctx.respond(embed=embed)
+
+@plugin.command()
+@lightbulb.command(name='now-playing', description='Get the currently playing track')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def np_command(ctx):
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node or not node.queue:
+        await ctx.respond('Nothing playing')
+        return
+
+    await ctx.respond(f"[{node.queue[0].title}]({node.queue[0].uri})")
+
+@plugin.command()
+@lightbulb.command(name='shuffle', description='Shuffle command')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def shuffle_command(ctx):
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node or not node.queue:
+        await ctx.respond('The queue is empty, nothing to shuffle')
+        return
+
+    await lavalink.shuffle(ctx.guild_id)
+    await ctx.respond('Shuffled the queue')
+
+@plugin.command()
+@lightbulb.command(name='skip', description='Skip the current track')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def skip_command(ctx):
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node:
+        await ctx.respond('I must be in your voice channel before you can use that command')
+        return
+
+    res = await lavalink.skip(ctx.guild_id)
+    if not res:
+        await ctx.respond('There is nothing to skip')
+    await ctx.respond('Skipped the current track')
+
+# Handle lavalink events
+
+@lavalink.listen(lavaplayer.WebSocketClosedEvent)
+async def web_socket_closed_event(event: lavaplayer.WebSocketClosedEvent):
+    logging.error(f"Websocket error: {event.reason}")
 
 def load(bot: lightbulb.BotApp):
     bot.add_plugin(plugin)
-
 
 def unload(bot: lightbulb.BotApp):
     bot.remove_plugin(plugin)
