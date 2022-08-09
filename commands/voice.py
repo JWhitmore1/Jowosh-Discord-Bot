@@ -7,14 +7,31 @@ import lavaplayer
 import asyncio
 
 import logging
+import subprocess
+import atexit
+from time import sleep
 
 plugin = lightbulb.Plugin("Music")
+
+auto_start_lavalink_server = os.environ.get("auto_start_lavalink_server", False)
+if auto_start_lavalink_server:
+    logging.info("Starting lavalink...")
+    lavalink_process = subprocess.Popen(["java", "-jar", "Lavalink.jar"], cwd="./server")
 
 lavalink = lavaplayer.LavalinkClient(
     host=os.environ.get("lavalink_host", "localhost"),
     port=os.environ.get("lavalink_port", 2333),
     password=os.environ.get("lavalink_password"),
 )
+
+def shutdown_lavalink():
+    logging.info("Stopping lavalink...")
+    lavalink_process.send_signal(subprocess.signal.SIGINT)
+    lavalink_process.communicate()
+
+if auto_start_lavalink_server:
+    # Shutdown lavalink when the bot is exited
+    atexit.register(shutdown_lavalink)
 
 @plugin.listener(hikari.StartedEvent)
 async def on_start(event: hikari.StartedEvent):

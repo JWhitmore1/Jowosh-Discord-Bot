@@ -16,8 +16,4 @@ echo "network is up now"
 cd /home/pi/Jowosh-Discord-Bot/
 git pull
 
-cd server
-screen -S lavalink -X quit || true # Kill lavalink if already running
-screen -S lavalink -dm java -jar Lavalink.jar # Run lavalink
-cd ..
 /usr/bin/python /home/pi/Jowosh-Discord-Bot/bot.py # Run bot
