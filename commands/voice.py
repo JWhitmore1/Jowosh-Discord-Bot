@@ -1,15 +1,22 @@
 import os
 import math
+import uuid
 
 import lightbulb
 import hikari
 import lavaplayer
+import pyttsx3
+import soundfile
 import asyncio
 
 import logging
 import subprocess
 import atexit
-from time import sleep
+import shutil
+import http.server
+import threading
+import importlib
+import time
 
 plugin = lightbulb.Plugin("Music")
 
@@ -24,14 +31,41 @@ lavalink = lavaplayer.LavalinkClient(
     password=os.environ.get("lavalink_password"),
 )
 
+should_read_no_mic = False
+tts_lock = threading.Lock()
+os.mkdir("tts-audio")
+
+tts_server_url = "http://localhost:8082"
+tts_audio_server = http.server.HTTPServer(("localhost", 8082), http.server.SimpleHTTPRequestHandler)
+
+def start_tts_audio_server():
+    tts_audio_server.serve_forever()
+
+# Serve files in tts-audio
+tts_audio_server_thread = threading.Thread(target=start_tts_audio_server)
+tts_audio_server_thread.start()
+
+def shutdown_tts_audio_server():
+    logging.info("Shutting down tts audio server...")
+    tts_audio_server.shutdown()
+
+def delete_tts_audio():
+    logging.info("Clearing tts audio...")
+    shutil.rmtree("tts-audio")
+
 def shutdown_lavalink():
     logging.info("Stopping lavalink...")
     lavalink_process.send_signal(subprocess.signal.SIGINT)
     lavalink_process.communicate()
 
+atexit.register(delete_tts_audio)
 if auto_start_lavalink_server:
     # Shutdown lavalink when the bot is exited
     atexit.register(shutdown_lavalink)
+
+@plugin.listener(hikari.StoppedEvent)
+async def on_stop(event: hikari.StoppedEvent):
+    shutdown_tts_audio_server()
 
 @plugin.listener(hikari.StartedEvent)
 async def on_start(event: hikari.StartedEvent):
@@ -39,6 +73,107 @@ async def on_start(event: hikari.StartedEvent):
     lavalink.set_user_id(plugin.bot.get_me().id)
     lavalink.set_event_loop(asyncio.get_event_loop())
     lavalink.connect()
+
+queue_to_restore: list = None
+position_to_restore = None
+
+@lavalink.listen(lavaplayer.TrackEndEvent)
+async def on_track_end(event: lavaplayer.TrackEndEvent):
+    global queue_to_restore
+    global position_to_restore
+
+    if not event.track.uri.startswith("http://localhost:8082/tts-audio"):
+        return
+
+    if queue_to_restore:
+        for track in queue_to_restore:
+            await lavalink.play(event.guild_id, track)
+        queue_to_restore = None
+    if position_to_restore:
+        print(position_to_restore)
+        await lavalink.seek(event.guild_id, position_to_restore)
+        position_to_restore = None
+    if tts_lock.locked():
+        tts_lock.release()
+
+async def play_tts_audio(event: hikari.MessageCreateEvent, filename: str):
+    global queue_to_restore
+    global position_to_restore
+
+    try:
+        result = await lavalink.auto_search_tracks(f"{tts_server_url}/{filename}")
+    except:
+        await event.message.respond("Failed to load tts audio as track from tts file server")
+        return
+    if not result:
+        await event.message.respond("Failed to play tts audio from tts file server")
+        return
+    elif isinstance(result, lavaplayer.TrackLoadFailed):
+        await event.message.respond("Failed to load tts audio from tts file server")
+        return
+
+    # Join the sender's voice channel
+    states = plugin.bot.cache.get_voice_states_view_for_guild(event.guild_id)
+    voice_state = [state async for state in states.iterator().filter(lambda i: i.user_id == event.author.id)]
+    if not voice_state:
+        await event.message.respond("Join a voice channel to have your messages read out")
+        return
+
+    channel_id = voice_state[0].channel_id
+    await plugin.bot.update_voice_state(event.guild_id, channel_id, self_deaf=True)
+    await lavalink.wait_for_connection(event.guild_id)
+
+    queue = await lavalink.queue(event.guild_id)
+
+    saved_position = None
+    if len(queue) >= 1:
+        saved_position = int(queue[0].position * 1000)
+
+    # Clear queue
+    if queue:
+        queue = queue.copy()
+        for _ in range(len(queue)):
+            await lavalink.skip(event.guild_id)
+    else:
+        queue = []
+
+    # Play tts audio
+    await lavalink.play(event.guild_id, result[0])
+    queue_to_restore = queue
+    position_to_restore = saved_position
+
+# Read out no-mic using tts if enabled
+@plugin.listener(hikari.MessageCreateEvent)
+async def handle_message_created(event: hikari.MessageCreateEvent):
+    if not should_read_no_mic:
+        return
+
+    if plugin.bot.cache.get_guild_channel(event.channel_id).name != "testing": # TODO: change to no-mic
+        return
+
+    if event.author.id == plugin.bot.cache.get_me().id:
+        return
+
+    logging.info("TTS-ing message")
+
+    # Generate tts audio
+    filename = f"tts-audio/{uuid.uuid4().hex}"
+    importlib.reload(pyttsx3) # Fix for pyttsx3 hanging after using it to generate a second file
+    tts_engine = pyttsx3.init()
+    tts_engine.save_to_file(event.content, f"{filename}.aiff")
+    tts_engine.runAndWait()
+    tts_engine.stop()
+
+    # Convert tts audio to format supported by lavaplayer
+    data, samplerate = soundfile.read(f"{filename}.aiff")
+    soundfile.write(f"{filename}.wav", data, samplerate)
+    logging.info("Generated audio")
+
+    tts_lock.acquire(timeout=-1)
+    logging.info("Acquired lock")
+    await play_tts_audio(event, f"{filename}.wav")
+
+    # Lock is released when the audio track ends
 
 @plugin.listener(hikari.VoiceStateUpdateEvent)
 async def voice_state_update(event: hikari.VoiceStateUpdateEvent):
@@ -65,6 +200,23 @@ async def join(ctx):
     await ctx.respond(f"Joined <#{channel_id}>")
 
 @plugin.command()
+@lightbulb.command('toggle-read-no-mic', 'Toggle whether Jowosh reads out messages in #no-mic')
+@lightbulb.implements(lightbulb.SlashCommand)
+async def read_no_mic(ctx):
+    global should_read_no_mic
+
+    node = await lavalink.get_guild_node(ctx.guild_id)
+    if not node and not should_read_no_mic:
+        await ctx.respond('I must be in your voice channel before you can use that command')
+        return
+
+    should_read_no_mic = not should_read_no_mic
+    if should_read_no_mic:
+        await ctx.respond("Reading out new messages from #no-mic")
+    else:
+        await ctx.respond("Stopped reading messages from #no-mic")
+
+@plugin.command()
 @lightbulb.option('query', 'The query to search for', required=True)
 @lightbulb.command('play', 'Get Jowosh to play a song/video')
 @lightbulb.implements(lightbulb.SlashCommand)
@@ -75,7 +227,11 @@ async def play(ctx):
         return
 
     query = ctx.options.query
-    result = await lavalink.auto_search_tracks(query)
+    try:
+        result = await lavalink.auto_search_tracks(query)
+    except:
+        await ctx.respond("Query failed")
+        return
     if not result:
         await ctx.respond("No results found")
         return
