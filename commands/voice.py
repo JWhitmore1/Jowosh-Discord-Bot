@@ -90,7 +90,6 @@ async def on_track_end(event: lavaplayer.TrackEndEvent):
             await lavalink.play(event.guild_id, track)
         queue_to_restore = None
     if position_to_restore:
-        print(position_to_restore)
         await lavalink.seek(event.guild_id, position_to_restore)
         position_to_restore = None
     if tts_lock.locked():
