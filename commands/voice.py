@@ -142,6 +142,7 @@ async def play_tts_audio(event: hikari.MessageCreateEvent, filename: str):
     position_to_restore = saved_position
 
 # Read out no-mic using tts if enabled
+'''
 @plugin.listener(hikari.MessageCreateEvent)
 async def handle_message_created(event: hikari.MessageCreateEvent):
     if not should_read_no_mic:
@@ -171,7 +172,7 @@ async def handle_message_created(event: hikari.MessageCreateEvent):
     tts_lock.acquire(timeout=-1)
     logging.info("Acquired lock")
     await play_tts_audio(event, f"{filename}.wav")
-
+'''
     # Lock is released when the audio track ends
 
 @plugin.listener(hikari.VoiceStateUpdateEvent)
