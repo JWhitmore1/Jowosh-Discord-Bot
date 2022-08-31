@@ -1,22 +1,24 @@
-from msilib.schema import Component
 import hikari
 import lightbulb
 import random
 import time
 from db import get_db, check_econ_id
+import requests
+import json
 
 
 plugin = lightbulb.Plugin("Work")
 
 
-def build_row(bot, options, answer):
+def build_row(bot, choice_count, answer):
     row = bot.rest.build_action_row()
-    for i in range(len(options)):
-        if options[i] == answer:
+    letters = ["a", "b", "c", "d"]
+    for i in range(choice_count):
+        if i == answer:
             button = row.add_button(hikari.ButtonStyle.PRIMARY, f"answer")
         else:
-            button = row.add_button(hikari.ButtonStyle.PRIMARY, f"option_{i}")
-        button.set_label(str(options[i]))
+            button = row.add_button(hikari.ButtonStyle.PRIMARY, f"choice_{i}")
+        button.set_label(letters[i])
         button.add_to_container()
     return row
 
@@ -31,19 +33,14 @@ async def math(ctx):
     check_econ_id(id, db)
 
     if ctx.options.level == 1:
-        numbers = [random.randint(1, 49), random.randint(1, 49)]
-        operator = random.choice(["+", "-"])
-        
-        if operator == "+": 
-            answer = numbers[0] + numbers[1]
-        if operator == "-": 
-            answer = numbers[0] - numbers[1]
+        response = json.loads(requests.get("http://localhost:8000/rand-problem").text)
+        problem_url = response["problem_url"]
+        answer = response["answer"]
+        choice_urls = response["choice_urls"]
 
-        ans_options = [answer, answer + random.randint(1, 5), answer - random.randint(1, 5), answer + random.randint(5, 10)]
-        random.shuffle(ans_options)
-
-        buttons = build_row(ctx.bot, ans_options, answer)
-        await ctx.respond(f"{numbers[0]} {operator} {numbers[1]} = ", component=buttons)
+        urls = [hikari.files.URL(f"http://localhost:8000{url}") for url in [problem_url] + choice_urls]
+        buttons = build_row(ctx.bot, len(choice_urls), answer)
+        await ctx.respond("", attachments=urls, component=buttons)
 
 
 @plugin.listener(hikari.InteractionCreateEvent)
@@ -54,7 +51,7 @@ async def on_component_interaction(event: hikari.InteractionCreateEvent) -> None
 
     if event.interaction.custom_id == "answer":
         await event.interaction.create_initial_response(hikari.ResponseType.MESSAGE_CREATE, 'Correct :thumbsup:')
-    else:
+    elif event.interaction.custom_id.startswith("choice_"):
         await event.interaction.create_initial_response(hikari.ResponseType.MESSAGE_CREATE, 'dumbass')
 
 
