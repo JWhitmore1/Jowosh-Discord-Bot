@@ -130,7 +130,3 @@ dmypy.json
 
 # database
 *.db
-
-# tmp audio files
-/tts-audio
-/server/logs
