@@ -23,8 +23,18 @@ def build_row(bot, choice_count, answer):
     return row
 
 
+def fetch_question(level):
+    response = json.loads(requests.get("http://localhost:8000/rand-problem").text)
+    problem_url = response["problem_url"]
+    answer = response["answer"]
+    choice_urls = response["choice_urls"]
+
+    urls = [hikari.files.URL(f"http://localhost:8000{url}") for url in [problem_url] + choice_urls]
+    return [urls, choice_urls, answer]
+
+
 @plugin.command()
-@lightbulb.option('level', 'what level of math would you like to complete', type=int, min_value=1, max_value=4)
+@lightbulb.option('level', 'what level of math would you like to complete', type=int, min_value=1, max_value=4, default=1)
 @lightbulb.command('math', 'earn gold by doing maths!')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def math(ctx):
@@ -32,15 +42,9 @@ async def math(ctx):
     id = ctx.member.id
     check_econ_id(id, db)
 
-    if ctx.options.level == 1:
-        response = json.loads(requests.get("http://localhost:8000/rand-problem").text)
-        problem_url = response["problem_url"]
-        answer = response["answer"]
-        choice_urls = response["choice_urls"]
-
-        urls = [hikari.files.URL(f"http://localhost:8000{url}") for url in [problem_url] + choice_urls]
-        buttons = build_row(ctx.bot, len(choice_urls), answer)
-        await ctx.respond("", attachments=urls, component=buttons)
+    urls = fetch_question(ctx.options.level)
+    buttons = build_row(ctx.bot, len(urls[1]), urls[2])
+    await ctx.respond("", attachments=urls[0], component=buttons)
 
 
 @plugin.listener(hikari.InteractionCreateEvent)
