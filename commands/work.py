@@ -5,9 +5,12 @@ import time
 from db import get_db, check_econ_id
 import requests
 import json
+import os
 
 
 plugin = lightbulb.Plugin("Work")
+
+maths_server_base_url = os.environ.get("maths_problem_gen_api_url", "http://localhost:8000")
 
 
 def build_row(bot, choice_count, answer):
@@ -42,9 +45,18 @@ async def math(ctx):
     id = ctx.member.id
     check_econ_id(id, db)
 
-    urls = fetch_question(ctx.options.level)
-    buttons = build_row(ctx.bot, len(urls[1]), urls[2])
-    await ctx.respond("", attachments=urls[0], component=buttons)
+    response = await ctx.respond("Loading...")
+    message = await response.message()
+
+    if ctx.options.level == 1:
+        response = json.loads(requests.get(f"{maths_server_base_url}/rand-problem").text)
+        problem_url = response["problem_url"]
+        answer = response["answer"]
+        choice_urls = response["choice_urls"]
+
+        urls = [hikari.files.URL(f"{maths_server_base_url}{endpoint}") for endpoint in [problem_url] + choice_urls]
+        buttons = build_row(ctx.bot, len(choice_urls), answer)
+        await message.edit("", attachments=urls, component=buttons)
 
 
 @plugin.listener(hikari.InteractionCreateEvent)

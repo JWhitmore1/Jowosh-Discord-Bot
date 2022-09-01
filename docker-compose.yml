@@ -1,0 +1,18 @@
+version: "3.9"
+services:
+  bot:
+    build: .
+    volumes:
+      - ".:/app"
+    environment:
+      maths_problem_gen_api_url: "http://maths_problem_gen:8000"
+    working_dir: "/app"
+    command: "python3 bot.py"
+  maths_problem_gen:
+    extends:
+      file: ./maths-problem-gen/docker-compose.yml
+      service: maths_problem_gen
+  mathoid:
+    extends:
+      file: ./maths-problem-gen/docker-compose.yml
+      service: mathoid
