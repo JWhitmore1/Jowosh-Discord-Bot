@@ -37,7 +37,7 @@ def fetch_question(level):
 
 
 @plugin.command()
-@lightbulb.option('level', 'what level of math would you like to complete', type=int, min_value=1, max_value=4, default=1)
+@lightbulb.option('level', 'what level of math would you like to complete', type=int, min_value=1, max_value=2, default=1)
 @lightbulb.command('math', 'earn gold by doing maths!')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def math(ctx):
@@ -48,8 +48,9 @@ async def math(ctx):
     response = await ctx.respond("Loading...")
     message = await response.message()
 
-    if ctx.options.level == 1:
-        response = json.loads(requests.get(f"{maths_server_base_url}/rand-problem").text)
+    try:
+        level = ctx.options.level
+        response = json.loads(requests.get(f"{maths_server_base_url}/rand-problem?level={level}").text)
         problem_url = response["problem_url"]
         answer = response["answer"]
         choice_urls = response["choice_urls"]
@@ -57,6 +58,8 @@ async def math(ctx):
         urls = [hikari.files.URL(f"{maths_server_base_url}{endpoint}") for endpoint in [problem_url] + choice_urls]
         buttons = build_row(ctx.bot, len(choice_urls), answer)
         await message.edit("", attachments=urls, component=buttons)
+    except Exception as e:
+        await message.edit(f"Failed to load problem: {e}")
 
 
 @plugin.listener(hikari.InteractionCreateEvent)
