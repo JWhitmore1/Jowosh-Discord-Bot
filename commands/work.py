@@ -37,7 +37,7 @@ def fetch_question(level):
 
 
 @plugin.command()
-@lightbulb.option('level', 'what level of math would you like to complete', type=int, min_value=1, max_value=2, default=1)
+@lightbulb.option('level', 'what level of math would you like to complete', type=int, min_value=1, max_value=3, default=1)
 @lightbulb.command('math', 'earn gold by doing maths!')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def math(ctx):
