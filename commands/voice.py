@@ -14,7 +14,7 @@ plugin = lightbulb.Plugin("Music")
 auto_start_lavalink_server = os.environ.get("auto_start_lavalink_server", False)
 if auto_start_lavalink_server:
     logging.info("Starting lavalink...")
-    lavalink_process = subprocess.Popen(["java", "-jar", "Lavalink.jar"], cwd="./server")
+    lavalink_process = subprocess.Popen(["java", "-Djava.io.tempdir=/home/pi/.tempjava", "-jar", "Lavalink.jar"], cwd="./server")
 
 
 lavalink = lavaplayer.LavalinkClient(
