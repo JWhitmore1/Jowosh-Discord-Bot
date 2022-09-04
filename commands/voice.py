@@ -64,7 +64,7 @@ async def join(ctx):
     
     channel_id = voice_state[0].channel_id
     await ctx.bot.update_voice_state(ctx.guild_id, channel_id, self_deaf=True)
-    await connect()
+    # await connect()
     await lavalink.wait_for_connection(ctx.guild_id)
 
     await lavalink.volume(ctx.guild_id, 50)
@@ -82,9 +82,8 @@ async def play(ctx):
         await ctx.respond('I must be in your voice channel before you can use that command')
         return
 
-    message = await ctx.respond("Loading...")
-
     query = ctx.options.query
+    message = await ctx.respond(f"Searching for '{query}'")
     try:
         result = await lavalink.auto_search_tracks(query)
     except:
