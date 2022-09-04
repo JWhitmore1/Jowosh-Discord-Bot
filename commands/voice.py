@@ -5,8 +5,8 @@ import uuid
 import lightbulb
 import hikari
 import lavaplayer
-import pyttsx3
-import soundfile
+# import pyttsx3
+# import soundfile
 import asyncio
 
 import logging
