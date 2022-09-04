@@ -77,7 +77,6 @@ async def join(ctx):
 @lightbulb.command('play', 'Get Jowosh to play a song/video')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def play(ctx):
-    await connect()
     node = await lavalink.get_guild_node(ctx.guild_id)
     if not node:
         await ctx.respond('I must be in your voice channel before you can use that command')
