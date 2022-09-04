@@ -30,12 +30,16 @@ def shutdown_lavalink():
     lavalink_process.communicate()
 
 
-@plugin.listener(hikari.StartedEvent)
-async def on_start(event: hikari.StartedEvent):
+async def connect():
     logging.info("Connecting to lavalink instance")
     lavalink.set_user_id(plugin.bot.get_me().id)
     lavalink.set_event_loop(asyncio.get_event_loop())
     lavalink.connect()
+
+
+@plugin.listener(hikari.StartedEvent)
+async def on_start(event: hikari.StartedEvent):
+    await connect()
 
 
 @plugin.listener(hikari.VoiceStateUpdateEvent)
@@ -60,6 +64,7 @@ async def join(ctx):
     
     channel_id = voice_state[0].channel_id
     await ctx.bot.update_voice_state(ctx.guild_id, channel_id, self_deaf=True)
+    await connect()
     await lavalink.wait_for_connection(ctx.guild_id)
 
     await lavalink.volume(ctx.guild_id, 50)
@@ -72,6 +77,7 @@ async def join(ctx):
 @lightbulb.command('play', 'Get Jowosh to play a song/video')
 @lightbulb.implements(lightbulb.SlashCommand)
 async def play(ctx):
+    await connect()
     node = await lavalink.get_guild_node(ctx.guild_id)
     if not node:
         await ctx.respond('I must be in your voice channel before you can use that command')
